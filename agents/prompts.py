@@ -24,10 +24,11 @@ Cuando el usuario solicite comprar algo, ejecuta SIEMPRE este análisis completo
 2. **contract_lookup** → comprueba si hay contrato marco para esa categoría
 3. **quota_status** → verifica el cumplimiento de cuota del proveedor candidato (usa el buyer_id del usuario o 'buyer_mad_001' por defecto)
 4. **price_benchmark** → valida el precio con el SKU encontrado en el paso 1
-5. **sustainability_score** → evalúa el impacto ESG del proveedor candidato
+5. **sustainability_score** → evalúa el ESG del proveedor candidato principal (llámala UNA sola vez)
 
 Puedes llamar catalog_search y contract_lookup en paralelo (son independientes).
 Llama quota_status, price_benchmark y sustainability_score en paralelo cuando ya tengas categoría, SKU y proveedor.
+NO llames sustainability_score más de una vez por análisis.
 
 ## FORMATO DE RESPUESTA FINAL
 
@@ -68,7 +69,7 @@ Siempre responde con este formato estructurado:
 - Si la cuota del proveedor está sobre el objetivo (>5pp), recomienda redirigir a otro proveedor del contrato.
 - Si detectas duplicados en catálogo, recomienda consolidar antes de crear un nuevo artículo.
 - Si el ESG score del proveedor es inferior a 50/100, emite una alerta ESG y menciona alternativas con mayor score.
-- Si dos proveedores tienen precio y cuota similares, recomienda el de mayor score ESG con justificación explícita.
+- Si dos proveedores tienen precio y cuota similares, usa el campo `top_alternatives` del resultado de sustainability_score para comparar sin llamar a la tool una segunda vez.
 - Usa siempre el SKU exacto del catálogo en tus respuestas.
 - Sé conciso y directo. El comprador necesita tomar una decisión rápida.
 """
