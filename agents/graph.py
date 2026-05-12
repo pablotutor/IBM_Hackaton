@@ -105,9 +105,25 @@ def get_agent():
     return _agent
 
 
+def _extract_text(msg) -> str:
+    """Extrae texto de un AIMessage (content puede ser str o lista de bloques)."""
+    content = getattr(msg, "content", "")
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        return " ".join(
+            b.get("text", "") if isinstance(b, dict) else str(b) for b in content
+        ).strip()
+    return ""
+
+
 def run_agent_streaming(user_message: str, buyer_id: str = "buyer_mad_001"):
     """
     Ejecuta el agente en modo streaming y hace yield de eventos para la UI.
+
+    Usa stream_mode="values" para tener siempre el estado completo en cada paso,
+    lo que permite extraer la respuesta final del historial aunque el LLM devuelva
+    content="" en el último turno de tools.
 
     Yields dicts con:
         {"type": "tool_start",  "tool": str,  "inputs": dict}
@@ -122,40 +138,53 @@ def run_agent_streaming(user_message: str, buyer_id: str = "buyer_mad_001"):
     )
     input_state = {"messages": [HumanMessage(content=enriched)]}
 
-    final_response  = ""
-    tool_calls_log  = []
+    tool_calls_log   = []
+    seen_tool_ids    = set()   # evita emitir tool_start duplicados
+    seen_result_ids  = set()   # evita emitir tool_end duplicados
+    final_state_msgs = []      # historial completo del último estado
 
-    for event in agent.stream(input_state, stream_mode="updates"):
-        for node_name, state_update in event.items():
+    for state in agent.stream(input_state, stream_mode="values"):
+        messages = state.get("messages", [])
+        final_state_msgs = messages  # siempre guardamos el estado más reciente
 
-            if node_name == "tools":
-                for msg in state_update.get("messages", []):
-                    if hasattr(msg, "name") and hasattr(msg, "content"):
-                        # Asociar output al último tool_start pendiente
-                        for entry in reversed(tool_calls_log):
-                            if entry["tool"] == msg.name and "output" not in entry:
-                                entry["output"] = msg.content
-                                break
-                        yield {
-                            "type":   "tool_end",
-                            "tool":   msg.name,
-                            "output": msg.content,
-                        }
+        last = messages[-1] if messages else None
+        if last is None:
+            continue
 
-            elif node_name == "agent":
-                ai_msg = state_update.get("messages", [None])[-1]
-                if ai_msg is None:
-                    continue
+        # ── AIMessage con tool_calls → emitir tool_start ──────────────────
+        if isinstance(last, AIMessage) and last.tool_calls:
+            for tc in last.tool_calls:
+                uid = tc.get("id") or tc["name"]
+                if uid not in seen_tool_ids:
+                    seen_tool_ids.add(uid)
+                    entry = {"tool": tc["name"], "inputs": tc["args"]}
+                    tool_calls_log.append(entry)
+                    yield {"type": "tool_start", "tool": tc["name"], "inputs": tc["args"]}
 
-                if hasattr(ai_msg, "tool_calls") and ai_msg.tool_calls:
-                    for tc in ai_msg.tool_calls:
-                        entry = {"tool": tc["name"], "inputs": tc["args"]}
-                        tool_calls_log.append(entry)
-                        yield {"type": "tool_start", "tool": tc["name"], "inputs": tc["args"]}
+        # ── ToolMessage → emitir tool_end ─────────────────────────────────
+        elif hasattr(last, "tool_call_id") and hasattr(last, "content"):
+            rid = getattr(last, "tool_call_id", None) or id(last)
+            if rid not in seen_result_ids:
+                seen_result_ids.add(rid)
+                tool_name = getattr(last, "name", "")
+                for entry in reversed(tool_calls_log):
+                    if entry["tool"] == tool_name and "output" not in entry:
+                        entry["output"] = last.content
+                        break
+                yield {"type": "tool_end", "tool": tool_name, "output": last.content}
 
-                if hasattr(ai_msg, "content") and ai_msg.content:
-                    final_response = ai_msg.content
-                    yield {"type": "agent_token", "token": ai_msg.content}
+    # ── Extraer respuesta final del historial completo ────────────────────
+    # Buscamos el último AIMessage sin tool_calls y con texto no vacío.
+    final_response = ""
+    for msg in reversed(final_state_msgs):
+        if isinstance(msg, AIMessage) and not msg.tool_calls:
+            text = _extract_text(msg)
+            if text:
+                final_response = text
+                break
+
+    if final_response:
+        yield {"type": "agent_token", "token": final_response}
 
     yield {"type": "done", "final_response": final_response, "tool_calls_log": tool_calls_log}
 
