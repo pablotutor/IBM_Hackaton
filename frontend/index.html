@@ -1,169 +1,163 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>SmartProc AI · Procurement Copilot</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-  :root{
-    --bg-0:#0A0A0B;
-    --bg-1:#0F0F11;
-    --bg-2:#15151A;
-    --bg-3:#1C1C22;
-    --line:#26262E;
-    --line-2:#33333D;
-    --ink-0:#F5F5F7;
-    --ink-1:#C7C7CF;
-    --ink-2:#8B8B96;
-    --ink-3:#5C5C66;
-    --accent:#7C6BF2;
-    --accent-2:#5B4FE0;
-    --accent-soft:rgba(124,107,242,0.12);
-    --ok:#2FB37A;
-    --warn:#D9A441;
-    --bad:#E5484D;
-  }
-  html,body,#root{height:100%;}
-  body{
-    font-family:'Inter Tight', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    background:var(--bg-0);
-    color:var(--ink-0);
-    font-feature-settings:"ss01","cv11";
-    -webkit-font-smoothing:antialiased;
-    text-rendering:optimizeLegibility;
-  }
-  .mono{font-family:'JetBrains Mono', ui-monospace, monospace;}
-  .grid-bg{
-    background-image:
-      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.025) 1px, transparent 0);
-    background-size: 22px 22px;
-  }
-  .hero-img{
-    background-image:linear-gradient(180deg, rgba(10,10,11,0.85) 0%, rgba(10,10,11,0.98) 70%, var(--bg-0) 100%), url('assets/tower-bg.jpg');
-    background-size:cover;
-    background-position:center 30%;
-  }
-  ::-webkit-scrollbar{width:10px;height:10px;}
-  ::-webkit-scrollbar-track{background:transparent;}
-  ::-webkit-scrollbar-thumb{background:#26262E;border-radius:99px;border:2px solid var(--bg-0);}
-  ::-webkit-scrollbar-thumb:hover{background:#3a3a44;}
-  @keyframes blink {0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
-  .dot{animation:blink 1.2s infinite both;}
-  .dot:nth-child(2){animation-delay:.18s;}
-  .dot:nth-child(3){animation-delay:.36s;}
-  @keyframes spin {to{transform:rotate(360deg)}}
-  .spin{animation:spin .9s linear infinite;}
-  @keyframes fiu {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .fiu{animation:fiu .35s cubic-bezier(.2,.7,.2,1) both;}
-  @keyframes pulse-green {0%,100%{box-shadow:0 0 0 0 rgba(47,179,122,0.5)}50%{box-shadow:0 0 0 6px rgba(47,179,122,0)}}
-  .pulse-green{animation:pulse-green 1.8s infinite;}
-  @keyframes shimmer {0%{background-position:-200% 0}100%{background-position:200% 0}}
-  .shimmer{
-    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-    background-size:200% 100%;
-    animation:shimmer 1.4s infinite;
-  }
-  textarea:focus, input:focus, button:focus, select:focus{outline:none;}
-  .focus-ring:focus-within{box-shadow:0 0 0 1px var(--accent), 0 0 0 4px rgba(124,107,242,0.18);}
-  details > summary{list-style:none;cursor:pointer;}
-  details > summary::-webkit-details-marker{display:none;}
-  .prose-soft p{color:var(--ink-1);line-height:1.6;}
-  .prose-soft h2{color:var(--ink-0);font-weight:600;letter-spacing:-0.01em;}
-  .prose-soft h3{color:var(--ink-0);font-weight:600;}
-  .prose-soft strong{color:var(--ink-0);font-weight:600;}
-  .prose-soft ul{color:var(--ink-1);}
-  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;letter-spacing:0.01em;}
-  /* Markdown rendered response */
-  .agent-md h2{font-size:16px;font-weight:600;margin:16px 0 8px;color:var(--ink-0);}
-  .agent-md h3{font-size:14px;font-weight:600;margin:12px 0 6px;color:var(--ink-0);}
-  .agent-md p{font-size:13.5px;line-height:1.65;color:var(--ink-1);margin:6px 0;}
-  .agent-md strong{color:var(--ink-0);font-weight:600;}
-  .agent-md ul,.agent-md ol{padding-left:18px;margin:6px 0;}
-  .agent-md li{font-size:13.5px;line-height:1.65;color:var(--ink-1);margin:3px 0;}
-  .agent-md hr{border:none;border-top:1px solid var(--line);margin:14px 0;}
-  .agent-md code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--bg-3);padding:1px 5px;border-radius:4px;color:var(--ink-1);}
-  .agent-md pre{background:var(--bg-3);padding:10px 12px;border-radius:8px;overflow-x:auto;margin:8px 0;}
-  .agent-md pre code{background:none;padding:0;}
+:root{
+  --bg-0:#0A0A0B; --bg-1:#0F0F11; --bg-2:#15151A; --bg-3:#1C1C22;
+  --line:#26262E; --line-2:#33333D;
+  --ink-0:#F5F5F7; --ink-1:#C7C7CF; --ink-2:#8B8B96; --ink-3:#5C5C66;
+  --accent:#7C6BF2; --accent-2:#5B4FE0; --accent-soft:rgba(124,107,242,0.12);
+  --ok:#2FB37A; --warn:#D9A441; --bad:#E5484D;
+}
+html,body,#root{height:100%;}
+body{font-family:'Inter Tight',ui-sans-serif,system-ui,-apple-system,sans-serif;background:var(--bg-0);color:var(--ink-0);font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
+.grid-bg{background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,0.025) 1px,transparent 0);background-size:22px 22px;}
+.hero-img{background-image:linear-gradient(180deg,rgba(10,10,11,0.85) 0%,rgba(10,10,11,0.98) 70%,var(--bg-0) 100%),url('assets/tower-bg.jpg');background-size:cover;background-position:center 30%;}
+::-webkit-scrollbar{width:10px;height:10px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:#26262E;border-radius:99px;border:2px solid var(--bg-0);} ::-webkit-scrollbar-thumb:hover{background:#3a3a44;}
+@keyframes blink{0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+.dot{animation:blink 1.2s infinite both;} .dot:nth-child(2){animation-delay:.18s;} .dot:nth-child(3){animation-delay:.36s;}
+@keyframes spin{to{transform:rotate(360deg)}} .spin{animation:spin .9s linear infinite;}
+@keyframes fiu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}} .fiu{animation:fiu .35s cubic-bezier(.2,.7,.2,1) both;}
+@keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(47,179,122,0.5)}50%{box-shadow:0 0 0 6px rgba(47,179,122,0)}} .pulse-green{animation:pulse-green 1.8s infinite;}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.shimmer{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);background-size:200% 100%;animation:shimmer 1.4s infinite;}
+textarea:focus,input:focus,button:focus{outline:none;}
+.focus-ring:focus-within{box-shadow:0 0 0 1px var(--accent),0 0 0 4px rgba(124,107,242,0.18);}
+details>summary{list-style:none;cursor:pointer;} details>summary::-webkit-details-marker{display:none;}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;letter-spacing:0.01em;}
+.prose-soft p{color:var(--ink-1);line-height:1.6;} .prose-soft h2{color:var(--ink-0);font-weight:600;letter-spacing:-0.01em;} .prose-soft h3{color:var(--ink-0);font-weight:600;} .prose-soft strong{color:var(--ink-0);font-weight:600;} .prose-soft ul{color:var(--ink-1);}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
-
 const API_BASE = window.location.origin;
 
 /* ─── ICONS ─── */
 const I = {
-  search: (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6"/><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
-  doc:    (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.6"/><path d="M14 3v5h5M9 13h7M9 17h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
-  scale:  (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 4v16M5 8h14M5 8l-2 6a3 3 0 0 0 6 0L7 8M19 8l-2 6a3 3 0 0 0 6 0L21 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  coin:   (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.6"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.7-1.5-1.5 0-2.8.7-2.8 2 0 1.4 1.4 1.8 2.8 2.1 1.5.3 3 .7 3 2.2 0 1.4-1.4 2.2-3 2.2-1.4 0-2.4-.6-2.9-1.7M12 6.5v1.5M12 16v1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
-  leaf:   (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M20 4S9 4 6 9c-2.5 4.2 0 9 0 9s5 1 9-2c4-3 5-12 5-12Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M6 18C8 14 12 10 18 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
-  spark:  (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
-  send:   (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M4 12 20 4l-4 16-4-7-8-1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
-  chevron:(p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  check:  (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="m5 12 5 5 9-11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  x:      (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-  alert:  (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M12 10v5M12 18v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-  trash:  (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  plus:   (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-  brain:  (p) => <svg viewBox="0 0 24 24" fill="none" {...p}><path d="M9 5a3 3 0 0 0-3 3v1a3 3 0 0 0-2 3 3 3 0 0 0 2 3v1a3 3 0 0 0 3 3h1V5H9ZM15 5a3 3 0 0 1 3 3v1a3 3 0 0 1 2 3 3 3 0 0 1-2 3v1a3 3 0 0 1-3 3h-1V5h1Z" stroke="currentColor" strokeWidth="1.5"/></svg>,
-  logo:   (p) => <svg viewBox="0 0 32 32" fill="none" {...p}>
-    <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg1)"/>
-    <path d="M10 20c1.5-3 3-5 6-5s4.5 2 6 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
-    <circle cx="16" cy="12" r="2.4" fill="#fff"/>
-    <defs><linearGradient id="lg1" x1="2" y1="2" x2="30" y2="30"><stop stopColor="#8E7BFF"/><stop offset="1" stopColor="#5847D1"/></linearGradient></defs>
-  </svg>,
+  search:(p)=><svg viewBox="0 0 24 24" fill="none" {...p}><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6"/><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  doc:   (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.6"/><path d="M14 3v5h5M9 13h7M9 17h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  scale: (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 4v16M5 8h14M5 8l-2 6a3 3 0 0 0 6 0L7 8M19 8l-2 6a3 3 0 0 0 6 0L21 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  coin:  (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.6"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.7-1.5-1.5 0-2.8.7-2.8 2 0 1.4 1.4 1.8 2.8 2.1 1.5.3 3 .7 3 2.2 0 1.4-1.4 2.2-3 2.2-1.4 0-2.4-.6-2.9-1.7M12 6.5v1.5M12 16v1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  leaf:  (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M20 4S9 4 6 9c-2.5 4.2 0 9 0 9s5 1 9-2c4-3 5-12 5-12Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M6 18C8 14 12 10 18 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  spark: (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  send:  (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M4 12 20 4l-4 16-4-7-8-1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
+  chevron:(p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  check: (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="m5 12 5 5 9-11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  x:     (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  alert: (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 4 2 20h20L12 4Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M12 10v5M12 18v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  trash: (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  plus:  (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  brain: (p)=><svg viewBox="0 0 24 24" fill="none" {...p}><path d="M9 5a3 3 0 0 0-3 3v1a3 3 0 0 0-2 3 3 3 0 0 0 2 3v1a3 3 0 0 0 3 3h1V5H9ZM15 5a3 3 0 0 1 3 3v1a3 3 0 0 1 2 3 3 3 0 0 1-2 3v1a3 3 0 0 1-3 3h-1V5h1Z" stroke="currentColor" strokeWidth="1.5"/></svg>,
+  logo:  (p)=><svg viewBox="0 0 32 32" fill="none" {...p}><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg1)"/><path d="M10 20c1.5-3 3-5 6-5s4.5 2 6 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/><circle cx="16" cy="12" r="2.4" fill="#fff"/><defs><linearGradient id="lg1" x1="2" y1="2" x2="30" y2="30"><stop stopColor="#8E7BFF"/><stop offset="1" stopColor="#5847D1"/></linearGradient></defs></svg>,
 };
 
 /* ─── STATIC DATA ─── */
 const BUYERS = [
-  { id: "buyer_mad_001", name: "Ana García",       city: "Madrid",    role: "Senior Buyer · Network",    initials: "AG" },
-  { id: "buyer_mad_002", name: "Carlos Ruiz",      city: "Madrid",    role: "Buyer · Infrastructure",    initials: "CR" },
-  { id: "buyer_bcn_001", name: "Marta Puig",       city: "Barcelona", role: "Buyer · CPE & Devices",     initials: "MP" },
-  { id: "buyer_vlc_001", name: "José Martínez",    city: "Valencia",  role: "Strategic Buyer",           initials: "JM" },
+  {id:"buyer_mad_001",name:"Laura Martín",  city:"Madrid",    role:"Senior Buyer · Network",   initials:"LM"},
+  {id:"buyer_mad_002",name:"Jordi Roca",    city:"Barcelona", role:"Buyer · Infrastructure",   initials:"JR"},
+  {id:"buyer_bcn_001",name:"Andrés Soto",   city:"Sevilla",   role:"Buyer · CPE & Devices",    initials:"AS"},
+  {id:"buyer_vlc_001",name:"Nuria Vidal",   city:"Valencia",  role:"Strategic Buyer",          initials:"NV"},
 ];
-
 const QUICK_PROMPTS = [
-  "Necesito 10.000m de fibra óptica de Corning a 3,20€/m. ¿Lo apruebo?",
-  "Compra de 200 ONTs Huawei GPON para FTTH en Barcelona a 85€/u",
-  "5 unidades de RRU 5G NR 64T64R de Ericsson a 21.000€/u",
-  "500 metros de cable fibra drop FTTH de proveedor no homologado",
-  "2 servidores HPE ProLiant DL380 Gen10 a 9.500€/ud para CPD Madrid",
+  // APROBAR: precio 1,60€ < negociado 1,65€ → todo en orden
+  "5.000m de cable fibra óptica SM G.652D 12 hilos de Corning a 1,60€/m para red troncal Madrid",
+  // APROBAR CON CONDICIONES: precio 40€ entre negociado 38€ y catálogo 42€
+  "200 ONTs Huawei EchoLife EG8145V5 GPON a 40€/u para despliegue FTTH Barcelona",
+  // APROBAR: precio exactamente en contrato marco radio 5G
+  "5 unidades RRU Huawei AAU5613 5G NR 64T64R 3.5GHz a 16.500€/u para macro 5G",
+  // RECHAZAR: precio 3,20€ >> negociado 1,65€ (precio desorbitado vs contrato)
+  "10.000m de cable fibra óptica SM G.652D Corning a 3,20€/m. ¿Lo apruebo?",
+  // RECHAZAR: sin catálogo ni contrato marco que lo cubra
+  "Servicios de instalación FTTH en Galicia — 1,8M€",
 ];
-
 const TOOL_META = {
-  catalog_search:       { label: "Catálogo",            Icon: (p) => <I.search {...p}/> },
-  contract_lookup:      { label: "Contrato Marco",      Icon: (p) => <I.doc    {...p}/> },
-  quota_status:         { label: "Cuota de Proveedor",  Icon: (p) => <I.scale  {...p}/> },
-  price_benchmark:      { label: "Benchmark de Precio", Icon: (p) => <I.coin   {...p}/> },
-  sustainability_score: { label: "Score ESG",           Icon: (p) => <I.leaf   {...p}/> },
+  catalog_search:       {label:"Catálogo",           Icon:(p)=><I.search {...p}/>},
+  contract_lookup:      {label:"Contrato Marco",     Icon:(p)=><I.doc    {...p}/>},
+  quota_status:         {label:"Cuota de Proveedor", Icon:(p)=><I.scale  {...p}/>},
+  price_benchmark:      {label:"Benchmark Precio",   Icon:(p)=><I.coin   {...p}/>},
+  sustainability_score: {label:"Score ESG",          Icon:(p)=><I.leaf   {...p}/>},
 };
 
+/* ─── HELPERS ─── */
+function parseToolOutput(raw) {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// Extract a named section from the LLM response.
+// Handles: ## Header, ### Header, PLAIN UPPERCASE HEADER, **Bold header**
+function extractSection(text, ...headers) {
+  if (!text) return "";
+  for (const h of headers) {
+    // 1. Markdown headers: ## / ###
+    let re = new RegExp(`###?\\s*[^\\n]*${h}[^\\n]*\\n([\\s\\S]*?)(?=\\n###|\\n---|$)`, "i");
+    let m = text.match(re);
+    if (m) return m[1].trim();
+    // 2. Plain uppercase section headers (e.g. "ALERTAS", "RECOMENDACIÓN FINAL")
+    //    Section ends when the next all-caps header line appears or end of string.
+    re = new RegExp(
+      `(?:^|\\n)[^\\na-z]*${h}[^\\na-z]*\\n([\\s\\S]*?)(?=\\n[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\\s]{4,}\\n|\\n###|$)`,
+      "i"
+    );
+    m = text.match(re);
+    if (m) return m[1].trim();
+  }
+  return "";
+}
+
+// Detect verdict keyword in LLM response
+function parseVerdict(text) {
+  if (!text) return null;
+  const up = text.toUpperCase();
+  if (up.includes("APROBAR CON CONDICIONES")) return "warn";
+  if (up.includes("RECHAZAR"))                return "bad";
+  if (up.includes("APROBAR"))                 return "ok";
+  return null;
+}
+
+// Extract alert items from the LLM response alerts section
+function parseAlerts(text) {
+  const section = extractSection(text, "Alertas", "ALERTA");
+  if (!section) return [];
+  return section
+    .split("\n")
+    .map(l => l
+      .replace(/^[-*•]\s*/u, "")           // strip leading bullet/dash
+      .replace(/^[⚠️✅❌ℹ️]+\s*/u, "")    // strip leading emojis
+      .replace(/\*\*/g, "")                // strip **bold**
+      .replace(/^:\s*/, "")                // strip leading colon
+      .trim()
+    )
+    .filter(l => l.length > 5)
+    .slice(0, 5);
+}
+
 /* ─── SMALL COMPONENTS ─── */
-function Avatar({ initials, size = 28 }) {
+function Avatar({initials, size=28}) {
   return (
     <div className="rounded-full flex items-center justify-center text-[11px] font-semibold tracking-wide"
-         style={{ width:size, height:size, background:"linear-gradient(135deg,#2a2a35,#1a1a22)", color:"#D8D4FF", border:"1px solid #33333D" }}>
+         style={{width:size,height:size,background:"linear-gradient(135deg,#2a2a35,#1a1a22)",color:"#D8D4FF",border:"1px solid #33333D"}}>
       {initials}
     </div>
   );
 }
-
-function StatusDot({ ok = true }) {
-  return <span className={"inline-block w-1.5 h-1.5 rounded-full " + (ok ? "pulse-green" : "")}
-               style={{ background: ok ? "var(--ok)" : "var(--bad)" }} />;
+function StatusDot({ok=true}) {
+  return <span className={"inline-block w-1.5 h-1.5 rounded-full "+(ok?"pulse-green":"")}
+               style={{background:ok?"var(--ok)":"var(--bad)"}}/>;
 }
-
 function Spinner() {
   return (
     <svg className="spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -173,140 +167,453 @@ function Spinner() {
   );
 }
 
-/* ─── SIDEBAR ─── */
-function Sidebar({ buyer, setBuyer, onPickPrompt, onClear, serverOk }) {
-  const [open, setOpen] = useState(false);
+/* ─── CARD PRIMITIVES ─── */
+function SectionCard({icon:Icon, title, tone="neutral", children}) {
+  const ic = {neutral:"var(--ink-1)", ok:"var(--ok)", warn:"var(--warn)", bad:"var(--bad)"}[tone];
   return (
-    <aside className="flex flex-col shrink-0 border-r"
-           style={{ width:288, background:"var(--bg-1)", borderColor:"var(--line)" }}>
-      {/* logo */}
-      <div className="px-5 pt-5 pb-4 flex items-center gap-2.5">
-        <I.logo width={26} height={26}/>
-        <div className="flex flex-col leading-tight">
-          <span className="text-[14px] font-semibold tracking-tight">SmartProc<span style={{color:"var(--accent)"}}> AI</span></span>
-          <span className="text-[10.5px] uppercase tracking-[0.14em]" style={{color:"var(--ink-3)"}}>Procurement Copilot</span>
-        </div>
+    <div className="rounded-lg p-3.5" style={{background:"var(--bg-2)",border:"1px solid var(--line)"}}>
+      <div className="flex items-center gap-2 mb-2.5">
+        <Icon width={14} height={14} style={{color:ic}}/>
+        <span className="text-[12.5px] font-medium">{title}</span>
       </div>
-
-      {/* buyer selector */}
-      <div className="px-3 pb-3">
-        <label className="text-[10.5px] uppercase tracking-[0.14em] px-2" style={{color:"var(--ink-3)"}}>Comprador activo</label>
-        <div className="relative mt-1.5">
-          <button onClick={() => setOpen(!open)}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors"
-                  style={{ background:"var(--bg-2)", border:"1px solid var(--line)" }}>
-            <Avatar initials={buyer.initials}/>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-medium truncate">{buyer.name}</div>
-              <div className="text-[11px] truncate" style={{color:"var(--ink-2)"}}>{buyer.city} · {buyer.role}</div>
-            </div>
-            <I.chevron width={14} height={14} style={{color:"var(--ink-2)", transform:open?"rotate(180deg)":"none", transition:"transform .15s"}}/>
-          </button>
-          {open && (
-            <div className="absolute z-30 mt-1 w-full rounded-lg overflow-hidden fiu"
-                 style={{ background:"var(--bg-2)", border:"1px solid var(--line-2)", boxShadow:"0 12px 32px rgba(0,0,0,0.5)" }}>
-              {BUYERS.map(b => (
-                <button key={b.id} onClick={() => { setBuyer(b); setOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-2.5 py-2 text-left hover:bg-white/[0.03]">
-                  <Avatar initials={b.initials}/>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium truncate">{b.name}</div>
-                    <div className="text-[11px] truncate" style={{color:"var(--ink-2)"}}>{b.city}</div>
-                  </div>
-                  {b.id === buyer.id && <I.check width={14} height={14} style={{color:"var(--accent)"}}/>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* quick prompts */}
-      <div className="px-3 pt-2">
-        <div className="flex items-center justify-between px-2 pb-1.5">
-          <span className="text-[10.5px] uppercase tracking-[0.14em]" style={{color:"var(--ink-3)"}}>Ejemplos rápidos</span>
-          <I.spark width={12} height={12} style={{color:"var(--ink-3)"}}/>
-        </div>
-        <div className="flex flex-col gap-1">
-          {QUICK_PROMPTS.map((p, i) => (
-            <button key={i} onClick={() => onPickPrompt(p)}
-                    className="group text-left px-2.5 py-2 rounded-lg transition-colors hover:bg-white/[0.04]"
-                    style={{ border:"1px solid transparent" }}>
-              <div className="flex items-start gap-2">
-                <span className="text-[10.5px] mono mt-0.5 shrink-0" style={{color:"var(--ink-3)"}}>{String(i+1).padStart(2,"0")}</span>
-                <span className="text-[12.5px] leading-snug line-clamp-2" style={{color:"var(--ink-1)"}}>{p}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1"/>
-
-      {/* footer */}
-      <div className="px-3 pb-3 pt-3 border-t" style={{borderColor:"var(--line)"}}>
-        <button onClick={onClear}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12.5px] font-medium hover:bg-white/[0.04] transition-colors"
-                style={{ color:"var(--ink-1)", border:"1px solid var(--line)" }}>
-          <I.trash width={14} height={14}/> Limpiar conversación
-        </button>
-        <div className="mt-3 flex items-center justify-between px-1.5">
-          <div className="flex items-center gap-2">
-            <StatusDot ok={serverOk}/>
-            <span className="text-[11.5px]" style={{color:"var(--ink-2)"}}>
-              {serverOk ? "Backend operativo" : "Backend caído"}
-            </span>
-          </div>
-          <span className="text-[10.5px] mono" style={{color:"var(--ink-3)"}}>v2.0</span>
-        </div>
-      </div>
-    </aside>
+      {children}
+    </div>
+  );
+}
+function KV({k, v, tone}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-0.5">
+      <span className="text-[12px]" style={{color:"var(--ink-2)"}}>{k}</span>
+      <span className="text-[12.5px] font-medium tabular-nums" style={{color:tone||"var(--ink-0)"}}>{v}</span>
+    </div>
   );
 }
 
-/* ─── TOOL CARD ─── */
-function ToolCard({ toolName, index, state, inputs, output }) {
+/* ─── STRUCTURED RESPONSE SECTIONS ─── */
+function CatalogCard({data}) {
+  if (!data || data.status !== "success") return null;
+  const top  = data.results?.[0];
+  const dups = data.duplicates_detected || 0;
+  if (!top) return null;
+  return (
+    <SectionCard icon={I.search} title="Catálogo">
+      <KV k="SKU"        v={<span className="mono text-[11.5px]">{top.sku}</span>}/>
+      <KV k="Artículo"   v={top.name}/>
+      <KV k="Proveedor"  v={top.supplier}/>
+      <KV k="Categoría"  v={top.category}/>
+      <KV k="Precio lista" v={`${top.unit_price_eur?.toFixed(2) ?? "—"} €/${top.uom ?? "u"}`}/>
+      <KV k="En catálogo"  v="Sí" tone="var(--ok)"/>
+      {dups > 0 && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11.5px]" style={{color:"var(--warn)"}}>
+          <I.alert width={11} height={11}/> {dups} duplicado{dups>1?"s":""} detectado{dups>1?"s":""}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ContractCard({data}) {
+  if (!data || data.status !== "success") return null;
+  const contracts = data.contracts || [];
+  if (!contracts.length) return (
+    <SectionCard icon={I.doc} title="Contrato Marco" tone="bad">
+      <p className="text-[12.5px]" style={{color:"var(--bad)"}}>Sin contrato marco vigente para esta categoría.</p>
+    </SectionCard>
+  );
+  const c = contracts[0];
+  const suppliers = c.suppliers || [];
+  return (
+    <SectionCard icon={I.doc} title="Contrato Marco" tone="ok">
+      <KV k="ID"      v={<span className="mono text-[11.5px]">{c.contract_id}</span>}/>
+      <KV k="Estado"  v="ACTIVO" tone="var(--ok)"/>
+      <KV k="Vigente hasta" v={c.validity_end}/>
+      {suppliers.map((s,i) => (
+        <KV key={i} k={s.name} v={`objetivo ${s.market_share_pct}`}/>
+      ))}
+    </SectionCard>
+  );
+}
+
+function QuotaCard({data}) {
+  if (!data || data.status !== "success") return null;
+  const st     = data.status_vs_target;
+  const tone   = st === "on_track" ? "ok" : st === "over" ? "warn" : "bad";
+  const color  = {ok:"var(--ok)", warn:"var(--warn)", bad:"var(--bad)"}[tone];
+  const label  = {ok:"EN OBJETIVO", warn:"SOBRE LÍMITE", bad:"BAJO OBJETIVO"}[tone];
+  const cur    = parseFloat(data.current_share_pct) || 0;
+  const tgt    = parseFloat(data.target_share_pct)  || 0;
+  return (
+    <SectionCard icon={I.scale} title="Cuota de Proveedor" tone={tone}>
+      <KV k="Proveedor"   v={data.supplier}/>
+      <KV k="Objetivo"    v={data.target_share_pct}/>
+      <KV k="Actual YTD"  v={data.current_share_pct} tone={color}/>
+      <KV k="Estado"      v={label} tone={color}/>
+      {/* progress bar */}
+      <div className="mt-2.5">
+        <div className="h-1.5 rounded-full overflow-hidden relative" style={{background:"var(--bg-3)"}}>
+          <div className="h-full rounded-full absolute inset-y-0 left-0" style={{width:`${Math.min(cur,100)}%`, background:color, transition:"width .6s"}}/>
+          {cur > tgt && (
+            <div className="h-full absolute inset-y-0 left-0" style={{width:`${Math.min(cur,100)}%`, background:"repeating-linear-gradient(45deg,rgba(217,164,65,0.4) 0 4px,transparent 4px 8px)"}}/>
+          )}
+        </div>
+        <div className="flex justify-between text-[10.5px] mono mt-1" style={{color:"var(--ink-3)"}}>
+          <span>0%</span><span style={{color}}>{Math.round(tgt)}% obj.</span><span>100%</span>
+        </div>
+      </div>
+      {data.recommendation && (
+        <p className="mt-2 text-[11.5px] leading-snug" style={{color:"var(--ink-2)"}}>{data.recommendation}</p>
+      )}
+    </SectionCard>
+  );
+}
+
+function PriceCard({data}) {
+  if (!data || data.status !== "success") return null;
+  const cat   = data.catalog_price_eur;
+  const fair  = data.estimated_fair_price_eur;
+  const rng   = data.current_market_range || {};
+  const disc  = data.discount_percentage || 0;
+  const conf  = data.confidence || 0;
+  const delta = (cat && fair) ? ((cat - fair) / fair * 100) : null;
+  const tone  = delta === null ? "neutral" : delta > 15 ? "bad" : delta > 0 ? "warn" : "ok";
+  const dcolor= {ok:"var(--ok)", warn:"var(--warn)", bad:"var(--bad)", neutral:"var(--ink-0)"}[tone];
+  return (
+    <SectionCard icon={I.coin} title="Benchmark de Precio" tone={tone}>
+      {cat  !== undefined && <KV k="Precio catálogo"  v={`${cat.toFixed(4)} €`}/>}
+      {fair !== undefined && <KV k="Precio justo"     v={`${fair.toFixed(4)} €`} tone={dcolor}/>}
+      {delta !== null && <KV k="Δ vs. precio justo" v={`${delta > 0 ? "+" : ""}${delta.toFixed(1)}%`} tone={dcolor}/>}
+      {rng.min  !== undefined && <KV k="Rango mercado" v={`${rng.min.toFixed(3)} – ${rng.max.toFixed(3)} €`}/>}
+      {disc > 0 && <KV k="Descuento vol." v={`${disc}%`} tone="var(--ok)"/>}
+      <KV k="Confianza ML" v={`${(conf*100).toFixed(0)}%`}/>
+      {data.price_alert && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11.5px]" style={{color:"var(--bad)"}}>
+          <I.alert width={11} height={11}/> {data.price_alert}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ESGCard({data}) {
+  if (!data || data.status !== "success") return null;
+  const score = data.esg_score;
+  const color = score >= 70 ? "var(--ok)" : score >= 50 ? "var(--warn)" : "var(--bad)";
+  const bd    = data.breakdown || {};
+  const certs = data.certifications || {};
+  const certList = [
+    {label: certs.iso_14001_label   || (certs.iso_14001 ? "✅ ISO 14001" : "❌ ISO 14001"),   ok: certs.iso_14001},
+    {label: `CDP ${certs.cdp_score || "—"}`,                                                   ok: ["A","A-","B"].includes(certs.cdp_score)},
+    {label: certs.sbt_label         || (certs.science_based_targets ? "✅ SBTi" : "❌ SBTi"),  ok: certs.science_based_targets},
+    {label: certs.ecovadis_label    || `EcoVadis ${certs.ecovadis_rating || "—"}`,            ok: ["Platinum","Gold"].includes(certs.ecovadis_rating)},
+  ].filter(c => c.label && c.label !== "undefined");
+
+  return (
+    <div className="rounded-lg p-3.5" style={{background:"var(--bg-2)",border:"1px solid var(--line)"}}>
+      {/* header row */}
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center justify-center w-6 h-6 rounded-md"
+                style={{background:"rgba(47,179,122,0.1)",color:"var(--ok)"}}>
+            <I.leaf width={13} height={13}/>
+          </span>
+          <span className="text-[13px] font-medium">Score ESG · {data.supplier}</span>
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-[22px] font-semibold tabular-nums" style={{color}}>{score}</span>
+          <span className="text-[11px]" style={{color:"var(--ink-3)"}}>/ 100</span>
+        </div>
+      </div>
+      {/* bar */}
+      <div className="h-1.5 rounded-full overflow-hidden" style={{background:"var(--bg-3)"}}>
+        <div className="h-full rounded-full transition-all" style={{width:`${score}%`,background:color}}/>
+      </div>
+      <div className="mt-1 flex justify-between text-[10.5px] mono" style={{color:"var(--ink-3)"}}>
+        <span>0</span><span>50</span><span>70</span><span>100</span>
+      </div>
+      {/* breakdown */}
+      {(bd.carbon_score || bd.social_score || bd.governance_score) && (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {[["Carbono",bd.carbon_score],["Social",bd.social_score],["Gobernanza",bd.governance_score]].map(([lbl,val])=>(
+            <div key={lbl} className="rounded-md px-2.5 py-2 text-center" style={{background:"var(--bg-3)"}}>
+              <div className="text-[16px] font-semibold tabular-nums" style={{color}}>{val}</div>
+              <div className="text-[10.5px] mt-0.5" style={{color:"var(--ink-3)"}}>{lbl}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* certs */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {certList.map(c=>(
+          <span key={c.label} className="chip"
+                style={{
+                  background:c.ok?"rgba(47,179,122,0.08)":"rgba(229,72,77,0.08)",
+                  color:c.ok?"var(--ok)":"var(--bad)",
+                  border:"1px solid "+(c.ok?"rgba(47,179,122,0.2)":"rgba(229,72,77,0.2)"),
+                }}>
+            {c.ok ? <I.check width={11} height={11}/> : <I.x width={11} height={11}/>}
+            {c.label}
+          </span>
+        ))}
+      </div>
+      {data.net_zero_target_year && (
+        <div className="mt-2 text-[11.5px]" style={{color:"var(--ink-2)"}}>
+          Net Zero objetivo: <span style={{color:"var(--ink-1)"}}>{data.net_zero_target_year}</span>
+          {data.renewable_energy_pct ? <span> · Renovables: <span style={{color:"var(--ink-1)"}}>{data.renewable_energy_pct}%</span></span> : null}
+        </div>
+      )}
+      {data.esg_alert && data.esg_alert_message && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11.5px]" style={{color:"var(--bad)"}}>
+          <I.alert width={11} height={11}/> {data.esg_alert_message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DupResolutionCard({items, onSelect, onSkip}) {
+  const [selected, setSelected] = useState(null);
+  const ordered = [...items.filter(r=>!r.is_duplicate), ...items.filter(r=>r.is_duplicate)];
+  return (
+    <div className="fiu rounded-xl overflow-hidden" style={{background:"var(--bg-1)",border:"1px solid rgba(217,164,65,0.35)"}}>
+      <div className="flex items-start gap-3 px-4 py-3.5" style={{borderBottom:"1px solid var(--line)",background:"rgba(217,164,65,0.06)"}}>
+        <span className="flex items-center justify-center w-7 h-7 rounded-md shrink-0 mt-0.5" style={{background:"rgba(217,164,65,0.15)",color:"var(--warn)"}}>
+          <I.alert width={14} height={14}/>
+        </span>
+        <div>
+          <div className="text-[13px] font-semibold" style={{color:"var(--warn)"}}>Duplicados detectados — selección requerida</div>
+          <div className="text-[12px] mt-0.5" style={{color:"var(--ink-2)"}}>
+            El catálogo contiene el mismo producto bajo varios SKUs. Selecciona el{" "}
+            <strong style={{color:"var(--ink-1)"}}>SKU canónico</strong> para garantizar economías de escala y adherencia al forecast.
+          </div>
+        </div>
+      </div>
+      <div className="px-4 py-3 flex flex-col gap-2">
+        {ordered.map(item=>{
+          const isSel = selected?.sku===item.sku;
+          return (
+            <button key={item.sku} onClick={()=>setSelected(item)} className="text-left rounded-lg px-3.5 py-3 transition-all"
+                    style={{background:isSel?"var(--accent-soft)":"var(--bg-2)",border:`1px solid ${isSel?"var(--accent)":"var(--line)"}`,boxShadow:isSel?"0 0 0 3px rgba(124,107,242,0.10)":"none"}}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="shrink-0 w-4 h-4 rounded-full border flex items-center justify-center"
+                        style={{borderColor:isSel?"var(--accent)":"var(--line-2)",background:isSel?"var(--accent)":"transparent"}}>
+                    {isSel&&<I.check width={10} height={10} style={{color:"#fff"}}/>}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="mono text-[11.5px] font-medium" style={{color:isSel?"var(--accent)":"var(--ink-2)"}}>{item.sku}</span>
+                      {item.is_duplicate&&<span className="chip" style={{background:"rgba(229,72,77,0.08)",color:"var(--bad)",border:"1px solid rgba(229,72,77,0.2)",fontSize:10}}>duplicado</span>}
+                    </div>
+                    <div className="text-[12.5px] font-medium mt-0.5 leading-snug" style={{color:"var(--ink-0)"}}>{item.name}</div>
+                    <div className="text-[11.5px] mt-0.5" style={{color:"var(--ink-2)"}}>{item.supplier}</div>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-[14px] font-semibold tabular-nums" style={{color:isSel?"var(--accent)":"var(--ink-0)"}}>{item.unit_price_eur?.toFixed(2)} €</div>
+                  <div className="text-[10.5px]" style={{color:"var(--ink-3)"}}>/ {item.uom??"u"}</div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2 px-4 pb-4">
+        <button disabled={!selected} onClick={()=>selected&&onSelect(selected)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-md text-[12.5px] font-medium disabled:opacity-40"
+                style={{background:"var(--accent)",color:"#fff"}}>
+          <I.check width={12} height={12}/> Confirmar SKU y analizar
+        </button>
+        <button onClick={onSkip} className="px-3.5 py-2 rounded-md text-[12.5px] font-medium"
+                style={{background:"var(--bg-3)",color:"var(--ink-1)",border:"1px solid var(--line-2)"}}>
+          Continuar sin seleccionar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RecommendationBox({verdict, text, alerts}) {
+  if (!verdict && !text) return null;
+  const cfg = {
+    ok:   {bg:"rgba(47,179,122,0.10)",  border:"rgba(47,179,122,0.35)",  color:"var(--ok)",   icBg:"rgba(47,179,122,0.15)",  label:"APROBAR"},
+    warn: {bg:"rgba(217,164,65,0.10)",  border:"rgba(217,164,65,0.35)",  color:"var(--warn)", icBg:"rgba(217,164,65,0.15)",  label:"APROBAR CON CONDICIONES"},
+    bad:  {bg:"rgba(229,72,77,0.08)",   border:"rgba(229,72,77,0.35)",   color:"var(--bad)",  icBg:"rgba(229,72,77,0.15)",   label:"RECHAZAR"},
+    null: {bg:"rgba(124,107,242,0.08)", border:"rgba(124,107,242,0.30)", color:"var(--accent)",icBg:"var(--accent-soft)",    label:"ANÁLISIS"},
+  }[verdict] || {bg:"rgba(124,107,242,0.08)", border:"rgba(124,107,242,0.30)", color:"var(--accent)", icBg:"var(--accent-soft)", label:"ANÁLISIS"};
+
+  // Extract recommendation section and clean markdown noise
+  const recSection = extractSection(text, "Recomendación", "RECOMENDACI");
+  const displayText = recSection || text || "";
+  // Strip verdict keywords (may appear 1-2 times at the top), markdown, and inline bullets
+  let cleanText = displayText;
+  cleanText = cleanText.replace(/^(APROBAR CON CONDICIONES|APROBAR|RECHAZAR)[:\s-]*/gi, "");
+  cleanText = cleanText.replace(/^(APROBAR CON CONDICIONES|APROBAR|RECHAZAR)[:\s-]*/gi, "");
+  cleanText = cleanText
+    .replace(/\*\*/g, "")           // strip **bold**
+    .replace(/\*/g, "")             // strip *italic*
+    .replace(/\.\s*-\s+/g, ". ")   // ". - bullet" → ". "
+    .replace(/\n-\s+/g, " ")        // newline bullets → space
+    .replace(/\s{2,}/g, " ")        // collapse extra spaces
+    .trim();
+
+  const actionLabel = {ok:"Aprobar compra", warn:"Aprobar y notificar a Category Manager", bad:"Rechazar solicitud", null:"Revisar"}[verdict] || "Revisar";
+
+  return (
+    <div>
+      {/* ── Alerts separados ── */}
+      {alerts.length > 0 && (
+        <div className="mt-4">
+          <div className="text-[11px] uppercase tracking-[0.16em] mb-2" style={{color:"var(--ink-3)"}}>Alertas</div>
+          <div className="flex flex-wrap gap-1.5">
+            {alerts.map((a,i)=>(
+              <span key={i} className="chip"
+                    style={{background:"rgba(217,164,65,0.1)",color:"var(--warn)",border:"1px solid rgba(217,164,65,0.25)"}}>
+                <I.alert width={11} height={11}/> {a}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* ── Recommendation box ── */}
+      <div className="mt-5 rounded-xl overflow-hidden"
+           style={{background:`linear-gradient(180deg, ${cfg.bg}, rgba(0,0,0,0))`, border:`1px solid ${cfg.border}`}}>
+        <div className="px-4 pt-4 pb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-md"
+                  style={{background:cfg.icBg, color:cfg.color}}>
+              <I.alert width={13} height={13}/>
+            </span>
+            <span className="text-[10.5px] uppercase tracking-[0.18em]" style={{color:cfg.color}}>Recomendación final</span>
+          </div>
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="text-[22px] font-semibold tracking-tight" style={{color:cfg.color}}>{cfg.label}</span>
+          </div>
+          {cleanText && (
+            <p className="mt-2 text-[13px] leading-relaxed" style={{color:"var(--ink-1)"}}>{cleanText}</p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button className="px-3.5 py-2 rounded-md text-[12.5px] font-medium"
+                    style={{background:cfg.color, color: verdict==="warn"?"#1a140a":"#fff"}}>
+              {actionLabel}
+            </button>
+            <button className="px-3.5 py-2 rounded-md text-[12.5px] font-medium"
+                    style={{background:"var(--bg-3)", color:"var(--ink-1)", border:"1px solid var(--line-2)"}}>
+              Negociar precio
+            </button>
+            {verdict !== "bad" && (
+              <button className="px-3.5 py-2 rounded-md text-[12.5px] font-medium"
+                      style={{color:"var(--ink-2)"}}>
+                Rechazar
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── STRUCTURED RESPONSE (main) ─── */
+function StructuredResponse({tools, finalResponse}) {
+  const get = (name) => {
+    const t = [...tools].reverse().find(t => t.name === name && t.state === "done");
+    return parseToolOutput(t?.output);
+  };
+
+  const catalog  = get("catalog_search");
+  const contract = get("contract_lookup");
+  const quota    = get("quota_status");
+  const price    = get("price_benchmark");
+  const esg      = get("sustainability_score");
+  const verdict  = parseVerdict(finalResponse);
+  const alerts   = parseAlerts(finalResponse);
+
+  // Header info from catalog or LLM response
+  const topItem  = catalog?.results?.[0];
+  const category = topItem?.category || quota?.category || "";
+  const itemName = topItem?.name     || "";
+  const supplier = topItem?.supplier || esg?.supplier || quota?.supplier || "";
+
+  return (
+    <div className="prose-soft">
+      {/* ── Header ── */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em]" style={{color:"var(--ink-3)"}}>
+          <I.doc width={12} height={12}/> Análisis de Compra
+        </div>
+        {itemName && (
+          <h2 className="mt-1.5 text-[19px] leading-snug font-semibold tracking-tight">
+            {itemName}{supplier ? ` · ${supplier}` : ""}
+          </h2>
+        )}
+        {(category || supplier) && (
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px]" style={{color:"var(--ink-2)"}}>
+            {category && <span>Categoría: <span style={{color:"var(--ink-1)"}}>{category}</span></span>}
+            {category && supplier && <span style={{color:"var(--ink-3)"}}>·</span>}
+            {supplier && <span>Proveedor: <span style={{color:"var(--ink-1)"}}>{supplier}</span></span>}
+          </div>
+        )}
+      </div>
+
+      {/* ── 2-col grid: Catálogo + Contrato ── */}
+      {(catalog || contract) && (
+        <div className="grid grid-cols-2 gap-2.5">
+          {catalog  && <CatalogCard  data={catalog}/>}
+          {contract && <ContractCard data={contract}/>}
+        </div>
+      )}
+
+      {/* ── 2-col grid: Cuota + Precio ── */}
+      {(quota || price) && (
+        <div className="grid grid-cols-2 gap-2.5 mt-2.5">
+          {quota && <QuotaCard data={quota}/>}
+          {price && <PriceCard data={price}/>}
+        </div>
+      )}
+
+      {/* ── ESG full width ── */}
+      {esg && <div className="mt-2.5"><ESGCard data={esg}/></div>}
+
+      {/* ── Recommendation ── */}
+      <RecommendationBox verdict={verdict} text={finalResponse} alerts={alerts}/>
+    </div>
+  );
+}
+
+/* ─── TOOL CARD (reasoning panel) ─── */
+function ToolCard({toolName, index, state, inputs, output}) {
   const [open, setOpen] = useState(false);
-  const meta   = TOOL_META[toolName] || { label: toolName, Icon: (p) => <I.spark {...p}/> };
-  const { Icon, label } = meta;
+  const meta = TOOL_META[toolName] || {label:toolName, Icon:(p)=><I.spark {...p}/>};
+  const {Icon, label} = meta;
   const isRun  = state === "running";
   const isDone = state === "done";
   const isPend = state === "pending";
-
   let parsedOutput = null;
-  if (isDone && output) {
-    try { parsedOutput = JSON.parse(output); } catch { parsedOutput = output; }
-  }
+  if (isDone && output) { try { parsedOutput = JSON.parse(output); } catch {} }
 
   return (
     <div className="fiu rounded-lg overflow-hidden"
-         style={{
-           background:"var(--bg-2)",
-           border:"1px solid " + (isRun ? "var(--accent)" : "var(--line)"),
-           boxShadow: isRun ? "0 0 0 3px rgba(124,107,242,0.08)" : "none",
-           transition:"all .25s",
-         }}>
-      <button onClick={() => isDone && setOpen(!open)}
+         style={{background:"var(--bg-2)", border:"1px solid "+(isRun?"var(--accent)":"var(--line)"),
+                 boxShadow:isRun?"0 0 0 3px rgba(124,107,242,0.08)":"none", transition:"all .25s"}}>
+      <button onClick={()=>isDone&&setOpen(!open)}
               className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
-              style={{ cursor: isDone ? "pointer" : "default" }}>
-        <span className="mono text-[10.5px]" style={{color:"var(--ink-3)", width:18}}>{String(index+1).padStart(2,"0")}</span>
+              style={{cursor:isDone?"pointer":"default"}}>
+        <span className="mono text-[10.5px]" style={{color:"var(--ink-3)",width:18}}>{String(index+1).padStart(2,"0")}</span>
         <span className="flex items-center justify-center rounded-md shrink-0"
-              style={{
-                width:30, height:30,
-                background: isDone ? "rgba(47,179,122,0.08)" : isRun ? "var(--accent-soft)" : "var(--bg-3)",
-                color:      isDone ? "var(--ok)"             : isRun ? "var(--accent)"       : "var(--ink-2)",
-                border:"1px solid " + (isDone ? "rgba(47,179,122,0.18)" : isRun ? "rgba(124,107,242,0.28)" : "var(--line)"),
-              }}>
+              style={{width:30,height:30,
+                background:isDone?"rgba(47,179,122,0.08)":isRun?"var(--accent-soft)":"var(--bg-3)",
+                color:isDone?"var(--ok)":isRun?"var(--accent)":"var(--ink-2)",
+                border:"1px solid "+(isDone?"rgba(47,179,122,0.18)":isRun?"rgba(124,107,242,0.28)":"var(--line)")}}>
           <Icon width={15} height={15}/>
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium" style={{color: isPend ? "var(--ink-3)" : "var(--ink-0)"}}>{label}</span>
+            <span className="text-[13px] font-medium" style={{color:isPend?"var(--ink-3)":"var(--ink-0)"}}>{label}</span>
             <span className="mono text-[10.5px]" style={{color:"var(--ink-3)"}}>{toolName}()</span>
           </div>
           {isPend && (
             <div className="mt-1 h-1 rounded-full overflow-hidden" style={{background:"var(--bg-3)"}}>
-              <div className="h-full w-1/3 shimmer" style={{background:"linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)"}}/>
+              <div className="h-full w-1/3 shimmer" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)"}}/>
             </div>
           )}
         </div>
@@ -314,23 +621,22 @@ function ToolCard({ toolName, index, state, inputs, output }) {
           {isPend && <span className="text-[11px]" style={{color:"var(--ink-3)"}}>Esperando…</span>}
           {isRun  && <span className="flex items-center gap-1.5 text-[11px]" style={{color:"var(--accent)"}}><Spinner/> Ejecutando</span>}
           {isDone && <span className="flex items-center gap-1.5 text-[11px]" style={{color:"var(--ok)"}}><I.check width={13} height={13}/> OK</span>}
-          {isDone && <I.chevron width={13} height={13} style={{color:"var(--ink-2)", transform:open?"rotate(180deg)":"none", transition:"transform .15s"}}/>}
+          {isDone && <I.chevron width={13} height={13} style={{color:"var(--ink-2)",transform:open?"rotate(180deg)":"none",transition:"transform .15s"}}/>}
         </div>
       </button>
-
       {isDone && open && (
         <div className="border-t" style={{borderColor:"var(--line)"}}>
           <div className="grid grid-cols-2 gap-px" style={{background:"var(--line)"}}>
             <div style={{background:"var(--bg-2)"}}>
               <div className="px-3 py-2 text-[10.5px] uppercase tracking-[0.14em] mono" style={{color:"var(--ink-3)"}}>params</div>
               <pre className="px-3 pb-3 text-[11.5px] mono leading-relaxed overflow-x-auto" style={{color:"var(--ink-1)"}}>
-{JSON.stringify(inputs || {}, null, 2)}
+{JSON.stringify(inputs||{}, null, 2)}
               </pre>
             </div>
             <div style={{background:"var(--bg-2)"}}>
               <div className="px-3 py-2 text-[10.5px] uppercase tracking-[0.14em] mono" style={{color:"var(--ink-3)"}}>result</div>
               <pre className="px-3 pb-3 text-[11.5px] mono leading-relaxed overflow-x-auto" style={{color:"var(--ink-1)"}}>
-{parsedOutput ? JSON.stringify(parsedOutput, null, 2) : (output || "—")}
+{parsedOutput ? JSON.stringify(parsedOutput, null, 2) : (output||"—")}
               </pre>
             </div>
           </div>
@@ -341,12 +647,12 @@ function ToolCard({ toolName, index, state, inputs, output }) {
 }
 
 /* ─── REASONING PANEL ─── */
-function ReasoningPanel({ tools, done, elapsedMs }) {
+function ReasoningPanel({tools, done, elapsedMs}) {
   const [open, setOpen] = useState(true);
-  const completed = tools.filter(t => t.state === "done").length;
+  const completed = tools.filter(t=>t.state==="done").length;
   return (
-    <details open={open} onToggle={(e) => setOpen(e.target.open)} className="rounded-xl"
-             style={{ background:"var(--bg-1)", border:"1px solid var(--line)" }}>
+    <details open={open} onToggle={e=>setOpen(e.target.open)} className="rounded-xl"
+             style={{background:"var(--bg-1)", border:"1px solid var(--line)"}}>
       <summary className="flex items-center gap-3 px-4 py-3">
         <span className="flex items-center justify-center w-7 h-7 rounded-md"
               style={{background:"var(--accent-soft)", color:"var(--accent)"}}>
@@ -356,19 +662,19 @@ function ReasoningPanel({ tools, done, elapsedMs }) {
           <div className="flex items-baseline gap-2">
             <span className="text-[13px] font-semibold">Razonamiento del agente</span>
             <span className="text-[11px]" style={{color:"var(--ink-2)"}}>
-              {done ? `${completed} herramientas · ${(elapsedMs/1000).toFixed(1)}s` : `${completed} herramientas ejecutadas`}
+              {done ? `${completed} herramientas · ${(elapsedMs/1000).toFixed(1)}s` : `${completed} de ${tools.length} herramientas`}
             </span>
           </div>
           <div className="text-[11.5px] mt-0.5" style={{color:"var(--ink-3)"}}>
             {done ? "Cadena de tools completa. Análisis listo." : "Ejecutando herramientas en secuencia…"}
           </div>
         </div>
-        <I.chevron width={14} height={14} style={{color:"var(--ink-2)", transform:open?"rotate(180deg)":"none", transition:"transform .15s"}}/>
+        <I.chevron width={14} height={14} style={{color:"var(--ink-2)",transform:open?"rotate(180deg)":"none",transition:"transform .15s"}}/>
       </summary>
       <div className="px-3 pb-3">
         <div className="flex flex-col gap-1.5">
-          {tools.map((t, i) => (
-            <ToolCard key={t.name + i} toolName={t.name} index={i}
+          {tools.map((t,i)=>(
+            <ToolCard key={t.name+i} toolName={t.name} index={i}
                       state={t.state} inputs={t.inputs} output={t.output}/>
           ))}
         </div>
@@ -377,41 +683,27 @@ function ReasoningPanel({ tools, done, elapsedMs }) {
   );
 }
 
-/* ─── FINAL RESPONSE (markdown rendered) ─── */
-function FinalResponse({ markdown }) {
-  const html = marked.parse(markdown || "");
-  return (
-    <div className="agent-md prose-soft"
-         dangerouslySetInnerHTML={{ __html: html }}/>
-  );
-}
-
 /* ─── AGENT MESSAGE ─── */
-function AgentMessage({ tools, done, elapsedMs, finalResponse, error }) {
+function AgentMessage({tools, done, elapsedMs, finalResponse, error}) {
   return (
     <div className="flex gap-3 fiu">
       <div className="shrink-0 mt-0.5">
         <div className="w-7 h-7 rounded-md flex items-center justify-center"
-             style={{ background:"linear-gradient(135deg,#8E7BFF,#5847D1)", color:"#fff" }}>
+             style={{background:"linear-gradient(135deg,#8E7BFF,#5847D1)", color:"#fff"}}>
           <I.spark width={14} height={14}/>
         </div>
       </div>
-      <div className="flex-1 min-w-0 max-w-[820px]">
+      <div className="flex-1 min-w-0 max-w-[900px]">
         <div className="flex items-baseline gap-2 mb-2">
           <span className="text-[13px] font-semibold">SmartProc Agent</span>
-          <span className="text-[11px]" style={{color:"var(--ink-3)"}}>
-            {done ? "finalizado" : "en curso…"}
-          </span>
+          <span className="text-[11px]" style={{color:"var(--ink-3)"}}>granite-3.2-8b · {done?"finalizado":"en curso…"}</span>
         </div>
 
-        {tools.length > 0 && (
-          <ReasoningPanel tools={tools} done={done} elapsedMs={elapsedMs}/>
-        )}
+        {tools.length > 0 && <ReasoningPanel tools={tools} done={done} elapsedMs={elapsedMs}/>}
 
-        {/* typing indicator while no tools yet */}
         {!done && tools.length === 0 && (
           <div className="flex items-center gap-1.5 px-4 py-3 rounded-xl"
-               style={{ background:"var(--bg-1)", border:"1px solid var(--line)" }}>
+               style={{background:"var(--bg-1)", border:"1px solid var(--line)"}}>
             <span className="dot w-1.5 h-1.5 rounded-full" style={{background:"var(--ink-2)"}}/>
             <span className="dot w-1.5 h-1.5 rounded-full" style={{background:"var(--ink-2)"}}/>
             <span className="dot w-1.5 h-1.5 rounded-full" style={{background:"var(--ink-2)"}}/>
@@ -420,15 +712,15 @@ function AgentMessage({ tools, done, elapsedMs, finalResponse, error }) {
 
         {error && (
           <div className="mt-3 px-4 py-3 rounded-xl fiu text-[13px]"
-               style={{ background:"rgba(229,72,77,0.08)", border:"1px solid rgba(229,72,77,0.25)", color:"var(--bad)" }}>
-            <I.alert width={14} height={14} style={{display:"inline", marginRight:6}}/>{error}
+               style={{background:"rgba(229,72,77,0.08)", border:"1px solid rgba(229,72,77,0.25)", color:"var(--bad)"}}>
+            <I.alert width={14} height={14} style={{display:"inline",marginRight:6}}/>{error}
           </div>
         )}
 
-        {done && finalResponse && (
+        {done && (finalResponse || tools.some(t=>t.state==="done")) && (
           <div className="mt-3 rounded-xl p-5 fiu"
-               style={{ background:"var(--bg-1)", border:"1px solid var(--line)" }}>
-            <FinalResponse markdown={finalResponse}/>
+               style={{background:"var(--bg-1)", border:"1px solid var(--line)"}}>
+            <StructuredResponse tools={tools} finalResponse={finalResponse}/>
           </div>
         )}
       </div>
@@ -437,13 +729,11 @@ function AgentMessage({ tools, done, elapsedMs, finalResponse, error }) {
 }
 
 /* ─── USER MESSAGE ─── */
-function UserMessage({ text, buyer }) {
+function UserMessage({text, buyer}) {
   return (
     <div className="flex gap-3 fiu">
-      <div className="shrink-0 mt-0.5">
-        <Avatar initials={buyer.initials} size={28}/>
-      </div>
-      <div className="flex-1 min-w-0 max-w-[820px]">
+      <div className="shrink-0 mt-0.5"><Avatar initials={buyer.initials} size={28}/></div>
+      <div className="flex-1 min-w-0 max-w-[900px]">
         <div className="flex items-baseline gap-2 mb-1.5">
           <span className="text-[13px] font-semibold">{buyer.name}</span>
           <span className="text-[11px]" style={{color:"var(--ink-3)"}}>hace un momento</span>
@@ -455,22 +745,22 @@ function UserMessage({ text, buyer }) {
 }
 
 /* ─── EMPTY STATE ─── */
-function EmptyState({ buyer, onPick }) {
+function EmptyState({buyer, onPick}) {
   return (
     <div className="flex flex-col items-center text-center pt-16 pb-10 fiu">
       <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-           style={{ background:"linear-gradient(135deg,#8E7BFF,#5847D1)" }}>
+           style={{background:"linear-gradient(135deg,#8E7BFF,#5847D1)"}}>
         <I.spark width={22} height={22} style={{color:"#fff"}}/>
       </div>
       <h1 className="text-[26px] font-semibold tracking-tight">Hola, {buyer.name.split(" ")[0]}.</h1>
       <p className="mt-1.5 max-w-md text-[14px]" style={{color:"var(--ink-2)"}}>
-        Describe una solicitud de compra y el copiloto ejecutará la cadena de validación completa: catálogo, contrato, cuota, benchmark y ESG.
+        Describe una solicitud de compra y el copiloto ejecutará la cadena de validación: catálogo, contrato, cuota, benchmark y ESG.
       </p>
       <div className="mt-7 grid grid-cols-2 gap-2 w-full max-w-2xl">
-        {QUICK_PROMPTS.slice(0,4).map((p,i) => (
-          <button key={i} onClick={() => onPick(p)}
+        {QUICK_PROMPTS.slice(0,4).map((p,i)=>(
+          <button key={i} onClick={()=>onPick(p)}
                   className="text-left px-3.5 py-3 rounded-lg text-[13px] hover:bg-white/[0.04] transition-colors"
-                  style={{ background:"var(--bg-1)", border:"1px solid var(--line)", color:"var(--ink-1)" }}>
+                  style={{background:"var(--bg-1)", border:"1px solid var(--line)", color:"var(--ink-1)"}}>
             <div className="flex items-center gap-2 mb-1">
               <I.spark width={12} height={12} style={{color:"var(--accent)"}}/>
               <span className="text-[10.5px] uppercase tracking-[0.14em]" style={{color:"var(--ink-3)"}}>Ejemplo</span>
@@ -483,31 +773,105 @@ function EmptyState({ buyer, onPick }) {
   );
 }
 
-/* ─── COMPOSER ─── */
-function Composer({ value, onChange, onSend, busy }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.style.height = "auto";
-      ref.current.style.height = Math.min(ref.current.scrollHeight, 180) + "px";
-    }
-  }, [value]);
+/* ─── SIDEBAR ─── */
+function Sidebar({buyer, setBuyer, onPickPrompt, onClear, serverOk}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <aside className="flex flex-col shrink-0 border-r"
+           style={{width:288, background:"var(--bg-1)", borderColor:"var(--line)"}}>
+      <div className="px-5 pt-5 pb-4 flex items-center gap-2.5">
+        <I.logo width={26} height={26}/>
+        <div className="flex flex-col leading-tight">
+          <span className="text-[14px] font-semibold tracking-tight">SmartProc<span style={{color:"var(--accent)"}}> AI</span></span>
+          <span className="text-[10.5px] uppercase tracking-[0.14em]" style={{color:"var(--ink-3)"}}>Procurement Copilot</span>
+        </div>
+      </div>
+      <div className="px-3 pb-3">
+        <label className="text-[10.5px] uppercase tracking-[0.14em] px-2" style={{color:"var(--ink-3)"}}>Comprador activo</label>
+        <div className="relative mt-1.5">
+          <button onClick={()=>setOpen(!open)}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left"
+                  style={{background:"var(--bg-2)", border:"1px solid var(--line)"}}>
+            <Avatar initials={buyer.initials}/>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-medium truncate">{buyer.name}</div>
+              <div className="text-[11px] truncate" style={{color:"var(--ink-2)"}}>{buyer.city} · {buyer.role}</div>
+            </div>
+            <I.chevron width={14} height={14} style={{color:"var(--ink-2)",transform:open?"rotate(180deg)":"none",transition:"transform .15s"}}/>
+          </button>
+          {open && (
+            <div className="absolute z-30 mt-1 w-full rounded-lg overflow-hidden fiu"
+                 style={{background:"var(--bg-2)", border:"1px solid var(--line-2)", boxShadow:"0 12px 32px rgba(0,0,0,0.5)"}}>
+              {BUYERS.map(b=>(
+                <button key={b.id} onClick={()=>{setBuyer(b);setOpen(false);}}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 text-left hover:bg-white/[0.03]">
+                  <Avatar initials={b.initials}/>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium truncate">{b.name}</div>
+                    <div className="text-[11px] truncate" style={{color:"var(--ink-2)"}}>{b.city}</div>
+                  </div>
+                  {b.id===buyer.id && <I.check width={14} height={14} style={{color:"var(--accent)"}}/>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="px-3 pt-2">
+        <div className="flex items-center justify-between px-2 pb-1.5">
+          <span className="text-[10.5px] uppercase tracking-[0.14em]" style={{color:"var(--ink-3)"}}>Ejemplos rápidos</span>
+          <I.spark width={12} height={12} style={{color:"var(--ink-3)"}}/>
+        </div>
+        <div className="flex flex-col gap-1">
+          {QUICK_PROMPTS.map((p,i)=>(
+            <button key={i} onClick={()=>onPickPrompt(p)}
+                    className="group text-left px-2.5 py-2 rounded-lg hover:bg-white/[0.04]"
+                    style={{border:"1px solid transparent"}}>
+              <div className="flex items-start gap-2">
+                <span className="text-[10.5px] mono mt-0.5 shrink-0" style={{color:"var(--ink-3)"}}>{String(i+1).padStart(2,"0")}</span>
+                <span className="text-[12.5px] leading-snug line-clamp-2" style={{color:"var(--ink-1)"}}>{p}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex-1"/>
+      <div className="px-3 pb-3 pt-3 border-t" style={{borderColor:"var(--line)"}}>
+        <button onClick={onClear}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12.5px] font-medium hover:bg-white/[0.04]"
+                style={{color:"var(--ink-1)", border:"1px solid var(--line)"}}>
+          <I.trash width={14} height={14}/> Limpiar conversación
+        </button>
+        <div className="mt-3 flex items-center justify-between px-1.5">
+          <div className="flex items-center gap-2">
+            <StatusDot ok={serverOk===true}/>
+            <span className="text-[11.5px]" style={{color:"var(--ink-2)"}}>
+              {serverOk===true?"Backend operativo":serverOk===false?"Backend caído":"Conectando…"}
+            </span>
+          </div>
+          <span className="text-[10.5px] mono" style={{color:"var(--ink-3)"}}>v3.0</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
 
+/* ─── COMPOSER ─── */
+function Composer({value, onChange, onSend, busy, buyer}) {
+  const ref = useRef(null);
+  useEffect(()=>{
+    if(ref.current){ref.current.style.height="auto";ref.current.style.height=Math.min(ref.current.scrollHeight,180)+"px";}
+  },[value]);
   return (
     <div className="px-8 pb-6 pt-2">
       <div className="max-w-[920px] mx-auto">
-        <div className="rounded-xl focus-ring" style={{ background:"var(--bg-1)", border:"1px solid var(--line)" }}>
-          <textarea
-            ref={ref}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
-            placeholder='Describe la solicitud de compra…  ej. "10.000m de fibra Corning a 3,20 €/m"'
-            rows={1}
-            disabled={busy}
-            className="w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-[14px] leading-relaxed placeholder:text-[var(--ink-3)]"
-            style={{color:"var(--ink-0)"}}
-          />
+        <div className="rounded-xl focus-ring" style={{background:"var(--bg-1)", border:"1px solid var(--line)"}}>
+          <textarea ref={ref} value={value} onChange={e=>onChange(e.target.value)}
+                    onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();onSend();}}}
+                    placeholder={`Pregunta a SmartProc como ${buyer?.name?.split(" ")[0] ?? "ti"}…  ej. "10.000m de fibra Corning a 3,20 €/m"`}
+                    rows={1} disabled={busy}
+                    className="w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-[14px] leading-relaxed placeholder:text-[var(--ink-3)]"
+                    style={{color:"var(--ink-0)"}}/>
           <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
             <div className="flex items-center gap-1">
               <button className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11.5px] hover:bg-white/[0.05]" style={{color:"var(--ink-2)"}}>
@@ -516,20 +880,18 @@ function Composer({ value, onChange, onSend, busy }) {
               <button className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11.5px] hover:bg-white/[0.05]" style={{color:"var(--ink-2)"}}>
                 <I.doc width={12} height={12}/> Plantilla
               </button>
-              <span className="text-[11px] ml-2" style={{color:"var(--ink-3)"}}>· Enter para enviar</span>
+              <span className="text-[11px] ml-2" style={{color:"var(--ink-3)"}}>·  ⌘ Enter para enviar</span>
             </div>
-            <button
-              disabled={!value.trim() || busy}
-              onClick={onSend}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12.5px] font-medium transition-opacity disabled:opacity-40"
-              style={{ background:"var(--accent)", color:"#fff" }}>
-              {busy ? "Procesando…" : "Enviar"} <I.send width={12} height={12}/>
+            <button disabled={!value.trim()||busy} onClick={onSend}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12.5px] font-medium disabled:opacity-40"
+                    style={{background:"var(--accent)", color:"#fff"}}>
+              {busy?"Procesando…":"Enviar"} <I.send width={12} height={12}/>
             </button>
           </div>
         </div>
         <div className="mt-2 px-1 text-[11px] flex items-center justify-between" style={{color:"var(--ink-3)"}}>
           <span>Las decisiones del copiloto requieren aprobación humana. Auditoría completa en cada turn.</span>
-          <span className="mono">SmartProc · Tools v5</span>
+          <span className="mono">Granite · Tools v5</span>
         </div>
       </div>
     </div>
@@ -538,160 +900,149 @@ function Composer({ value, onChange, onSend, busy }) {
 
 /* ─── APP ─── */
 function App() {
-  const [buyer,     setBuyer]     = useState(BUYERS[0]);
-  const [serverOk,  setServerOk]  = useState(null);
-  const [input,     setInput]     = useState("");
-  const [messages,  setMessages]  = useState([]);
-  const [busy,      setBusy]      = useState(false);
+  const [buyer,    setBuyer]    = useState(BUYERS[0]);
+  const [serverOk, setServerOk] = useState(null);
+  const [input,    setInput]    = useState("");
+  const [messages, setMessages] = useState([]);
+  const [busy,     setBusy]     = useState(false);
   const scrollerRef = useRef(null);
   const abortRef    = useRef(null);
 
-  // Health check
-  useEffect(() => {
-    fetch(`${API_BASE}/health`)
-      .then(r => setServerOk(r.ok))
-      .catch(() => setServerOk(false));
-  }, []);
+  useEffect(()=>{
+    fetch(`${API_BASE}/health`).then(r=>setServerOk(r.ok)).catch(()=>setServerOk(false));
+  },[]);
 
-  // Auto-scroll
-  useEffect(() => {
-    if (scrollerRef.current)
-      scrollerRef.current.scrollTo({ top: scrollerRef.current.scrollHeight, behavior:"smooth" });
-  }, [messages]);
+  useEffect(()=>{
+    if(scrollerRef.current)
+      scrollerRef.current.scrollTo({top:scrollerRef.current.scrollHeight, behavior:"smooth"});
+  },[messages]);
 
-  const updateAgentMsg = useCallback((id, updater) => {
-    setMessages(prev => prev.map(m => m.id === id ? updater(m) : m));
-  }, []);
+  const updateAgent = useCallback((id, fn)=>{
+    setMessages(prev=>prev.map(m=>m.id===id?fn(m):m));
+  },[]);
 
-  async function runQuery(text) {
-    const userMsg  = { id: Date.now(),   role:"user",  text };
-    const agentId  = Date.now() + 1;
-    const agentMsg = { id: agentId, role:"agent", tools:[], done:false, elapsedMs:0, finalResponse:"", error:null };
-
-    setMessages(prev => [...prev, userMsg, agentMsg]);
+  async function runQueryStream(text, skipUserMsg=false) {
+    const agentId  = Date.now()+1;
+    const agentMsg = {id:agentId, role:"agent", tools:[], done:false, elapsedMs:0, finalResponse:"", error:null};
+    if(skipUserMsg) {
+      setMessages(prev=>[...prev, agentMsg]);
+    } else {
+      const userMsg = {id:Date.now(), role:"user", text};
+      setMessages(prev=>[...prev, userMsg, agentMsg]);
+    }
     setBusy(true);
-
     const t0 = performance.now();
     abortRef.current = new AbortController();
 
-    // Map de toolName → índice en el array tools del mensaje
-    const toolIndexMap = {};
-
     try {
-      const resp = await fetch(`${API_BASE}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ message: text, buyer_id: buyer.id }),
-        signal: abortRef.current.signal,
+      const resp = await fetch(`${API_BASE}/api/chat`,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({message:text, buyer_id:buyer.id}),
+        signal:abortRef.current.signal,
       });
-
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
       const reader  = resp.body.getReader();
       const decoder = new TextDecoder();
       let   buffer  = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
+      while(true) {
+        const {done, value} = await reader.read();
+        if(done) break;
+        buffer += decoder.decode(value,{stream:true});
         const lines = buffer.split("\n");
-        buffer = lines.pop(); // keep incomplete line
+        buffer = lines.pop();
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const raw = line.slice(6).trim();
-          if (!raw) continue;
-          let ev;
-          try { ev = JSON.parse(raw); } catch { continue; }
+        for(const line of lines) {
+          if(!line.startsWith("data: ")) continue;
+          let ev; try { ev = JSON.parse(line.slice(6)); } catch { continue; }
 
-          if (ev.type === "tool_start") {
-            updateAgentMsg(agentId, m => {
-              const idx = m.tools.length;
-              toolIndexMap[ev.tool + "_" + idx] = idx;
-              // store by insertion order; use a simple key for last match
-              toolIndexMap[ev.tool] = idx;
-              return {
-                ...m,
-                tools: [...m.tools, { name:ev.tool, state:"running", inputs:ev.inputs, output:null }],
-              };
-            });
-          }
-
-          else if (ev.type === "tool_end") {
-            updateAgentMsg(agentId, m => {
-              const tools = [...m.tools];
-              // find last running entry with this name
-              for (let i = tools.length - 1; i >= 0; i--) {
-                if (tools[i].name === ev.tool && tools[i].state === "running") {
-                  tools[i] = { ...tools[i], state:"done", output:ev.output };
-                  break;
-                }
+          if(ev.type==="tool_start") {
+            updateAgent(agentId, m=>({...m, tools:[...m.tools,{name:ev.tool,state:"running",inputs:ev.inputs,output:null}]}));
+          } else if(ev.type==="tool_end") {
+            updateAgent(agentId, m=>{
+              const tools=[...m.tools];
+              for(let i=tools.length-1;i>=0;i--){
+                if(tools[i].name===ev.tool&&tools[i].state==="running"){tools[i]={...tools[i],state:"done",output:ev.output};break;}
               }
-              return { ...m, tools, elapsedMs: performance.now() - t0 };
+              return {...m, tools, elapsedMs:performance.now()-t0};
             });
-          }
-
-          else if (ev.type === "agent_token") {
-            updateAgentMsg(agentId, m => ({ ...m, finalResponse: ev.token }));
-          }
-
-          else if (ev.type === "done") {
-            updateAgentMsg(agentId, m => ({
-              ...m,
-              done: true,
-              finalResponse: ev.final_response || m.finalResponse,
-              elapsedMs: performance.now() - t0,
-            }));
-          }
-
-          else if (ev.type === "error") {
-            updateAgentMsg(agentId, m => ({ ...m, done:true, error: ev.message }));
+          } else if(ev.type==="agent_token") {
+            updateAgent(agentId, m=>({...m, finalResponse:ev.token}));
+          } else if(ev.type==="done") {
+            updateAgent(agentId, m=>({...m, done:true, finalResponse:ev.final_response||m.finalResponse, elapsedMs:performance.now()-t0}));
+          } else if(ev.type==="error") {
+            updateAgent(agentId, m=>({...m, done:true, error:ev.message}));
           }
         }
       }
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        updateAgentMsg(agentId, m => ({
-          ...m, done:true,
-          error: `Error al conectar con el backend: ${err.message}. Comprueba que el servidor está corriendo en ${API_BASE}.`,
-        }));
+    } catch(err) {
+      if(err.name!=="AbortError") {
+        updateAgent(agentId, m=>({...m, done:true, error:`Error al conectar: ${err.message}. Arranca el servidor con: uvicorn api.server:app --port 8000`}));
       }
-    } finally {
+    } finally { setBusy(false); }
+  }
+
+  async function runQuery(text) {
+    if(!text.trim()||busy) return;
+    setBusy(true);
+
+    // Pre-flight: detectar duplicados antes de arrancar el agente
+    let dupData = null;
+    try {
+      const r = await fetch(`${API_BASE}/api/catalog-check`,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({message:text}),
+      });
+      if(r.ok) dupData = await r.json();
+    } catch(_) {}
+
+    // Duplicados detectados → mostrar tarjeta de selección
+    if(dupData && dupData.duplicates_detected>0 && dupData.items.length>=2) {
       setBusy(false);
+      const userMsgId = Date.now();
+      const dupId = Date.now()+1;
+      setMessages(prev=>[...prev,
+        {id:userMsgId, role:"user", text},
+        {id:dupId, role:"dup_check", items:dupData.items, originalText:text},
+      ]);
+      return;
     }
+
+    // Sin duplicados → flujo normal
+    setBusy(false);
+    await runQueryStream(text, false);
+  }
+
+  async function handleDupSelect(dupId, originalText, item) {
+    const enriched = `${originalText}\n\n[El comprador ha seleccionado el SKU canónico: ${item.sku} — ${item.name}. Usa este SKU exacto en tu análisis.]`;
+    setMessages(prev=>prev.map(m=>m.id===dupId ? {...m, role:"dup_confirmed", selectedItem:item} : m));
+    await runQueryStream(enriched, true);
+  }
+
+  function handleDupSkip(dupId, originalText) {
+    setMessages(prev=>prev.filter(m=>m.id!==dupId));
+    runQueryStream(originalText, true);
   }
 
   function handleSend() {
-    if (!input.trim() || busy) return;
-    const q = input.trim();
-    setInput("");
-    runQuery(q);
-  }
-
-  function handleClear() {
-    abortRef.current?.abort();
-    setMessages([]);
-    setBusy(false);
+    const hasPendingDup = messages.some(m=>m.role==="dup_check");
+    if(!input.trim()||busy||hasPendingDup) return;
+    const q=input.trim(); setInput(""); runQuery(q);
   }
 
   return (
     <div className="flex h-full grid-bg">
       <Sidebar buyer={buyer} setBuyer={setBuyer}
-               onPickPrompt={(p) => setInput(p)}
-               onClear={handleClear}
-               serverOk={serverOk === true}/>
+               onPickPrompt={p=>setInput(p)} onClear={()=>{abortRef.current?.abort();setMessages([]);setBusy(false);}}
+               serverOk={serverOk}/>
 
       <main className="flex-1 flex flex-col min-w-0">
-        {/* header */}
         <header className="px-8 pt-5 pb-4 border-b flex items-center justify-between hero-img"
-                style={{ borderColor:"var(--line)" }}>
+                style={{borderColor:"var(--line)"}}>
           <div>
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em]" style={{color:"var(--ink-3)"}}>
-              <span>Telco Procurement</span>
-              <span style={{color:"var(--line-2)"}}>/</span>
-              <span>Network Materials</span>
+              <span>Telco Procurement</span><span style={{color:"var(--line-2)"}}>/</span><span>Network Materials</span>
             </div>
             <h1 className="mt-1 text-[20px] font-semibold tracking-tight">Solicitud de aprobación</h1>
             <div className="text-[12.5px]" style={{color:"var(--ink-2)"}}>
@@ -699,30 +1050,40 @@ function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="chip" style={{background:"var(--bg-2)", border:"1px solid var(--line)", color:"var(--ink-1)"}}>
-              <StatusDot ok={serverOk === true}/> {serverOk === true ? "Conectado" : serverOk === false ? "Sin conexión" : "Conectando…"}
+            <span className="chip" style={{background:"var(--bg-2)",border:"1px solid var(--line)",color:"var(--ink-1)"}}>
+              <StatusDot ok={serverOk===true}/> {serverOk===true?"Conectado":serverOk===false?"Sin conexión":"Conectando…"}
             </span>
-            <span className="chip mono" style={{background:"var(--bg-2)", border:"1px solid var(--line)", color:"var(--ink-2)"}}>
-              FY26 · Q2
-            </span>
+            <span className="chip mono" style={{background:"var(--bg-2)",border:"1px solid var(--line)",color:"var(--ink-2)"}}>FY26 · Q2</span>
           </div>
         </header>
 
-        {/* chat */}
         <div ref={scrollerRef} className="flex-1 overflow-y-auto px-8 py-8">
           <div className="max-w-[920px] mx-auto flex flex-col gap-7">
-            {messages.length === 0 && <EmptyState buyer={buyer} onPick={(p) => setInput(p)}/>}
-            {messages.map(m =>
-              m.role === "user"
-                ? <UserMessage key={m.id} text={m.text} buyer={buyer}/>
-                : <AgentMessage key={m.id} tools={m.tools} done={m.done}
-                                elapsedMs={m.elapsedMs} finalResponse={m.finalResponse}
-                                error={m.error}/>
-            )}
+            {messages.length===0 && <EmptyState buyer={buyer} onPick={p=>setInput(p)}/>}
+            {messages.map(m=>{
+              if(m.role==="user") return <UserMessage key={m.id} text={m.text} buyer={buyer}/>;
+              if(m.role==="dup_check") return (
+                <div key={m.id} className="w-full">
+                  <DupResolutionCard items={m.items}
+                    onSelect={item=>handleDupSelect(m.id, m.originalText, item)}
+                    onSkip={()=>handleDupSkip(m.id, m.originalText)}/>
+                </div>
+              );
+              if(m.role==="dup_confirmed") return (
+                <div key={m.id} className="flex items-center gap-2">
+                  <I.check width={13} height={13} style={{color:"var(--ok)"}}/>
+                  <span className="chip" style={{background:"rgba(47,179,122,0.10)",color:"var(--ok)",border:"1px solid rgba(47,179,122,0.25)"}}>
+                    SKU canónico: {m.selectedItem.sku} — {m.selectedItem.name}
+                  </span>
+                </div>
+              );
+              return <AgentMessage key={m.id} tools={m.tools} done={m.done}
+                              elapsedMs={m.elapsedMs} finalResponse={m.finalResponse} error={m.error}/>;
+            })}
           </div>
         </div>
 
-        <Composer value={input} onChange={setInput} onSend={handleSend} busy={busy}/>
+        <Composer value={input} onChange={setInput} onSend={handleSend} busy={busy} buyer={buyer}/>
       </main>
     </div>
   );

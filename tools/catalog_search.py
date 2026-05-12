@@ -10,6 +10,7 @@ from tools._shared import DATA_SYNTHETIC, embed, cosine_top_k
 
 # Umbral para considerar dos resultados duplicados entre sí
 PAIRWISE_DUP_THRESHOLD = 0.75
+MIN_SIMILARITY_THRESHOLD = 0.60  # por debajo de este score el artículo se considera no encontrado
 
 # Caché del índice — incluye los 200 items (canónicos + duplicados)
 _CATALOG_INDEX: dict = {}
@@ -70,6 +71,32 @@ def catalog_search(description: str, limit: int = 5) -> dict:
             })
             result_vecs.append(vecs[i])
 
+        # Re-ranking: bonus por tokens numéricos del query (discriminan "12 hilos" vs "96 hilos")
+        import re as _re
+        num_tokens = _re.findall(r'\b\d+\b', description)
+        if num_tokens:
+            for r in results:
+                text = r["name"] + " " + r["description"]
+                bonus = sum(0.02 for tok in num_tokens if _re.search(rf'\b{tok}\b', text))
+                r["similarity_score"] = round(r["similarity_score"] + bonus, 4)
+
+        # Ordenar manteniendo result_vecs sincronizados (necesarios para detección de duplicados)
+        paired = sorted(zip(results, result_vecs), key=lambda x: x[0]["similarity_score"], reverse=True)
+        results     = [p[0] for p in paired]
+        result_vecs = [p[1] for p in paired]
+
+        # Si el mejor match tiene score muy bajo, el artículo no está en catálogo
+        if not results or results[0]["similarity_score"] < MIN_SIMILARITY_THRESHOLD:
+            return {
+                "status":  "not_found",
+                "query":   description,
+                "message": f"Artículo no encontrado en catálogo (mejor similitud: {results[0]['similarity_score'] if results else 0:.4f}, umbral mínimo: {MIN_SIMILARITY_THRESHOLD}). El artículo solicitado no existe en el catálogo homologado — se trata de un posible maverick spend.",
+                "results": [],
+                "total_found": 0,
+                "duplicates_detected": 0,
+                "duplicate_warning": None,
+            }
+
         # Detección de duplicados: comparación cruzada entre todos los resultados
         # Dos items son duplicados si su similitud entre sí supera el umbral
         import numpy as np
@@ -79,7 +106,7 @@ def catalog_search(description: str, limit: int = 5) -> dict:
         for i in range(len(results)):
             for j in range(i + 1, len(results)):
                 sim_ij = float(np.dot(result_vecs[i], result_vecs[j]))
-                if sim_ij >= PAIRWISE_DUP_THRESHOLD:
+                if sim_ij >= PAIRWISE_DUP_THRESHOLD and results[i]["uom"] == results[j]["uom"]:
                     # Buscar si alguno ya pertenece a un grupo
                     merged = False
                     for g in dup_groups:
