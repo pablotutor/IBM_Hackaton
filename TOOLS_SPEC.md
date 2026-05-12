@@ -2,6 +2,8 @@
 
 Todos los miembros del equipo deben conocer estas firmas **exactas** antes de codear.
 
+> **v2**: añadida Tool 5 `sustainability_score`. Criterio de selección de técnica: RAG para datos no estructurados (documentos, descripciones libres); SQL/pandas para datos estructurados (scores, booleanos, fechas).
+
 ## Tool 1: catalog_search
 
 **Descripción:** Busca artículos en el catálogo que coincidan con la descripción del usuario.
@@ -125,6 +127,64 @@ Todos los miembros del equipo deben conocer estas firmas **exactas** antes de co
 
 ---
 
+---
+
+## Tool 5: sustainability_score
+
+**Descripción:** Consulta el score ESG de un proveedor. Técnica: query SQL directa sobre `esg_scores.json` (datos estructurados — no RAG). En producción: EcoVadis API o MSCI ESG.
+
+**Parámetros:**
+- `supplier` (str, requerido): Nombre del proveedor (ej: "Ericsson")
+- `category` (str, opcional): Categoría del producto — filtra las alternativas sugeridas
+
+**Output:**
+```python
+{
+    "status": "success",
+    "supplier": "Ericsson",
+    "esg_score": 78,                  # 0-100
+    "esg_alert": False,               # True si score < 50
+    "esg_alert_message": None,        # texto de alerta o None
+    "breakdown": {
+        "carbon_score": 82,
+        "social_score": 76,
+        "governance_score": 74
+    },
+    "certifications": {
+        "iso_14001": True,
+        "iso_14001_label": "✅ ISO 14001",
+        "cdp_score": "A-",
+        "science_based_targets": True,
+        "sbt_label": "✅ Science Based Targets (SBTi)",
+        "ecovadis_rating": "Gold",
+        "ecovadis_score": 71,
+        "ecovadis_label": "EcoVadis Gold (71/100)"
+    },
+    "net_zero_target_year": 2040,
+    "renewable_energy_pct": 68,
+    "notes": "EcoVadis Gold pendiente de renovación en 2025. SBTi validado en 2022.",
+    "top_alternatives": [
+        {"supplier": "Nokia", "esg_score": 81},
+        {"supplier": "Cisco", "esg_score": 76}
+    ]
+}
+```
+
+**Casos especiales:**
+```python
+# Proveedor no encontrado
+{"status": "not_found", "message": "Proveedor 'X' no encontrado en la BD ESG.", "available": [...]}
+
+# Error de sistema
+{"status": "error", "message": "BD ESG no encontrada. Verifica data/synthetic/esg_scores.json."}
+```
+
+**Reglas de negocio aplicadas por el agente:**
+- `esg_score < 50` → alerta ESG obligatoria en la respuesta
+- Si dos proveedores tienen precio y cuota similares → recomendar el de mayor score ESG con justificación
+
+---
+
 ## Notas de implementación
 
 1. Todas las tools validan inputs con Pydantic
@@ -132,3 +192,4 @@ Todos los miembros del equipo deben conocer estas firmas **exactas** antes de co
 3. Errores siempre: `{"status": "error", "message": "..."}`
 4. Las tools son idempotentes
 5. Devuelven siempre dict (nunca excepciones sin capturar)
+6. `quota_status`, `price_benchmark` y `sustainability_score` pueden llamarse en paralelo una vez conocidos categoría, SKU y proveedor
