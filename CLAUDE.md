@@ -52,21 +52,23 @@ notebooks/
 4. `frontend/app.py` — chat Streamlit con panel de razonamiento
 5. `eval/` — test set y métricas
 
-## Las 4 tools (ver TOOLS_SPEC.md para firmas exactas)
+## Las 5 tools (ver TOOLS_SPEC.md para firmas exactas)
 
 | Tool | Técnica | Input clave | Output clave |
 |---|---|---|---|
-| `catalog_search` | RAG + ChromaDB | `description`, `limit` | resultados + `duplicates_detected` |
+| `catalog_search` | RAG + embeddings | `description`, `limit` | resultados + `duplicates_detected` |
 | `contract_lookup` | RAG sobre JSONs | `category` | contratos vigentes |
 | `quota_status` | Query a CSV | `buyer_id`, `supplier`, `category` | `current_market_share` vs `target` |
 | `price_benchmark` | XGBoost | `sku`, `quantity`, `supplier` | `estimated_fair_price`, `confidence` |
+| `sustainability_score` | Query SQL (pandas) | `supplier`, `category` | `esg_score` (0-100), breakdown, certificaciones |
 
 ## Convenciones
 
 - Todas las tools validan inputs con Pydantic
 - Todas devuelven `{"status": "success/error", ...}` — nunca lanzan excepciones sin capturar
 - Timeout por tool: 5 segundos
-- Datos sintéticos: 200 artículos catálogo (20 duplicados), 5 contratos, 2000 transacciones
+- Datos sintéticos: 200 artículos catálogo (20 duplicados), 5 contratos, 2000 transacciones, 27 proveedores ESG
+- Tools con datos estructurados (scores, booleanos, fechas) usan query SQL/pandas — no RAG
 
 ## Variables de entorno (.env)
 

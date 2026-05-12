@@ -1,4 +1,4 @@
-# NOMBRE A DEFINIR — Procurement Copilot
+# SmartProc AI — Procurement Copilot
 
 Agente IA para optimizar el proceso de compras en empresas Telco.
 
@@ -8,7 +8,8 @@ Ayudar a compradores con recomendaciones inteligentes sobre:
 - Detección de duplicados en catálogo
 - Cumplimiento de cuota de proveedores
 - Detección de maverick spend
-- Validación contra forecast presupuestario
+- Validación de precio contra benchmark histórico + ML
+- Evaluación de impacto ESG del proveedor
 
 ## 🏗️ Arquitectura
 
@@ -46,8 +47,19 @@ smartproc-copilot/
 │   ├── raw/
 │   ├── processed/
 │   └── synthetic/          # Dataset generado
+│       ├── catalog.csv
+│       ├── contracts.json
+│       ├── transactions.csv
+│       ├── forecast.csv
+│       ├── esg_scores.json  # Scores ESG de 27 proveedores
+│       └── contracts/       # TXT de contratos (RAG)
 ├── agents/                 # Lógica del agente LangGraph
-├── tools/                  # Las 4 tools (tools separadas)
+├── tools/                  # Las 5 tools
+│   ├── catalog_search.py   # RAG — duplicados en catálogo
+│   ├── contract_lookup.py  # RAG — contratos marco
+│   ├── quota_status.py     # SQL — cuota de proveedor
+│   ├── price_benchmark.py  # ML  — precio justo
+│   └── sustainability_score.py  # SQL — score ESG
 ├── config/                 # Configuración (LLM, etc.)
 ├── frontend/               # App Streamlit
 ├── notebooks/              # Jupyter notebooks
@@ -62,4 +74,4 @@ smartproc-copilot/
 ## 📖 Documentación
 
 - `ARCHITECTURE.md`: Diagrama y descripción de la solución
-- `TOOLS_SPEC.md`: Especificación exacta de las 4 tools
+- `TOOLS_SPEC.md`: Especificación exacta de las 5 tools
