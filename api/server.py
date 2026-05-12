@@ -1,5 +1,5 @@
 """
-SmartProc AI — FastAPI server
+Orbita — FastAPI server
 Expone el agente LangGraph como API HTTP con Server-Sent Events (SSE).
 Sirve también el frontend estático desde frontend/.
 """
@@ -30,7 +30,7 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 from agents.graph import run_agent_streaming  # noqa: E402
 from tools.catalog_search import catalog_search  # noqa: E402
 
-app = FastAPI(title="SmartProc AI", version="2.0.0")
+app = FastAPI(title="Orbita", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,

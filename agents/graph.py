@@ -1,5 +1,5 @@
 """
-Agente LangGraph — SmartProc Copilot.
+Agente LangGraph — Orbita.
 
 Arquitectura ReAct:
   START → agent → [tool_calls?] → tools → agent → ... → END
