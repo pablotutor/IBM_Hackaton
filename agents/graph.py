@@ -8,12 +8,13 @@ El agente recibe la solicitud del comprador, orquesta las 4 tools en el orden
 óptimo y genera una recomendación final estructurada.
 """
 
+import json
 import os
 import time
 from typing import Literal
 
 from dotenv import load_dotenv
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -25,6 +26,96 @@ load_dotenv()
 
 _MAX_RETRIES = 3
 _RETRY_DELAY = 2  # segundos entre reintentos
+
+# Máx. chars que un ToolMessage puede aportar al contexto del LLM
+_MAX_TOOL_CONTENT = 800
+
+
+def _normalize_decimals(text: str) -> str:
+    """Convierte separador decimal español (coma) a punto: 3,20€ → 3.20€.
+    No toca separadores de miles (10.000 tiene 3 dígitos tras el punto, no 1-2)."""
+    import re as _re
+    return _re.sub(r'(\d),(\d{1,2})(?!\d)', r'\1.\2', text)
+
+_REQUIRED_TOOLS = {"catalog_search", "contract_lookup", "price_benchmark", "quota_status", "sustainability_score"}
+
+
+def _missing_tools(messages: list) -> set:
+    """Devuelve las tools requeridas que aún no tienen ToolMessage en el historial.
+    Si catalog_search devolvió not_found, price_benchmark se excluye (sin SKU no hay benchmark)."""
+    called = {getattr(m, "name", "") for m in messages if isinstance(m, ToolMessage)}
+    missing = _REQUIRED_TOOLS - called - {""}
+
+    for m in messages:
+        if isinstance(m, ToolMessage) and getattr(m, "name", "") == "catalog_search":
+            try:
+                if json.loads(m.content).get("status") == "not_found":
+                    missing.discard("price_benchmark")
+            except Exception:
+                pass
+
+    return missing
+
+
+def _slim_tool_content(tool_name: str, raw: str) -> str:
+    """Reduce el output de una tool a lo esencial para no saturar el contexto del LLM."""
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return raw[:_MAX_TOOL_CONTENT]
+
+    if data.get("status") == "error":
+        return json.dumps({"status": "error", "message": data.get("message", "")}, ensure_ascii=False)
+
+    if tool_name == "catalog_search":
+        results = data.get("results", [])[:2]  # máx 2 resultados
+        slim_results = [
+            {k: r[k] for k in ("sku", "name", "category", "unit_price_eur", "supplier", "uom", "is_duplicate") if k in r}
+            for r in results
+        ]
+        return json.dumps({
+            "status": "success",
+            "results": slim_results,
+            "duplicates_detected": data.get("duplicates_detected", 0),
+        }, ensure_ascii=False)
+
+    if tool_name == "contract_lookup":
+        for c in data.get("contracts", []):
+            c.pop("key_terms", None)
+            c.pop("volume_discounts", None)
+            c.pop("sla_delivery_compliance_pct", None)
+            c.pop("lead_time_days", None)
+            c.pop("min_order_quantity", None)
+        return json.dumps(data, ensure_ascii=False)
+
+    if tool_name == "quota_status":
+        keep = ("status", "supplier", "category", "current_share_pct",
+                "target_share_pct", "status_vs_target", "recommendation")
+        return json.dumps({k: data[k] for k in keep if k in data}, ensure_ascii=False)
+
+    if tool_name == "sustainability_score":
+        drop = ("top_alternatives",)
+        slim = {k: v for k, v in data.items() if k not in drop}
+        return json.dumps(slim, ensure_ascii=False)
+
+    # Genérico: devolver JSON completo (ya son compactos)
+    return json.dumps(data, ensure_ascii=False)
+
+
+def _slim_messages(messages: list) -> list:
+    """Reemplaza el contenido de los ToolMessages por versiones comprimidas."""
+    result = []
+    for msg in messages:
+        if isinstance(msg, ToolMessage):
+            slimmed = _slim_tool_content(getattr(msg, "name", ""), msg.content)
+            result.append(ToolMessage(
+                content=slimmed,
+                tool_call_id=msg.tool_call_id,
+                name=getattr(msg, "name", ""),
+            ))
+        else:
+            result.append(msg)
+    return result
 
 # ── Configuración del LLM ─────────────────────────────────────────────────────
 
@@ -45,7 +136,20 @@ def call_model(state: MessagesState) -> dict:
     """Nodo principal: el LLM razona y decide qué tools llamar (o responde).
     Reintenta hasta _MAX_RETRIES veces en errores 5xx transitorios de Ollama Cloud."""
     llm = _build_llm()
-    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
+    slimmed = _slim_messages(state["messages"])
+
+    # Si ya hay resultados de tools pero faltan algunas, inyectar recordatorio explícito
+    has_tool_results = any(isinstance(m, ToolMessage) for m in slimmed)
+    missing = _missing_tools(slimmed)
+    if has_tool_results and missing:
+        nudge = (
+            f"[SISTEMA] ATENCIÓN: Todavía no has llamado estas herramientas obligatorias: "
+            f"{', '.join(sorted(missing))}. "
+            f"Llámalas AHORA EN PARALELO (todas en un mismo mensaje) antes de generar tu respuesta final."
+        )
+        slimmed = slimmed + [HumanMessage(content=nudge)]
+
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + slimmed
 
     last_exc = None
     for attempt in range(_MAX_RETRIES):
@@ -133,6 +237,7 @@ def run_agent_streaming(user_message: str, buyer_id: str = "buyer_mad_001"):
     """
     agent = get_agent()
 
+    user_message = _normalize_decimals(user_message)
     enriched = (
         f"{user_message}\n\n[Contexto del sistema: buyer_id del comprador activo = '{buyer_id}']"
     )
@@ -196,6 +301,7 @@ def invoke_agent(user_message: str, buyer_id: str = "buyer_mad_001") -> dict:
     """
     agent = get_agent()
 
+    user_message = _normalize_decimals(user_message)
     enriched = (
         f"{user_message}\n\n[Contexto del sistema: buyer_id del comprador activo = '{buyer_id}']"
     )
