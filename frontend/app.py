@@ -66,10 +66,11 @@ st.markdown("""
 # ── Constantes ────────────────────────────────────────────────────────────────
 
 TOOL_META = {
-    "catalog_search":  {"icon": "🔍", "label": "Catálogo",   "css": "tool-catalog"},
-    "contract_lookup": {"icon": "📄", "label": "Contrato",   "css": "tool-contract"},
-    "quota_status":    {"icon": "⚖️",  "label": "Cuota",      "css": "tool-quota"},
-    "price_benchmark": {"icon": "💰", "label": "Precio",     "css": "tool-price"},
+    "catalog_search":      {"icon": "🔍", "label": "Catálogo",      "css": "tool-catalog"},
+    "contract_lookup":     {"icon": "📄", "label": "Contrato",      "css": "tool-contract"},
+    "quota_status":        {"icon": "⚖️",  "label": "Cuota",         "css": "tool-quota"},
+    "price_benchmark":     {"icon": "💰", "label": "Precio",        "css": "tool-price"},
+    "sustainability_score":{"icon": "🌱", "label": "ESG",           "css": "tool-catalog"},
 }
 
 BUYERS = {
@@ -300,10 +301,15 @@ if user_input:
 
         except Exception as e:
             err_str = str(e)
-            if "502" in err_str or "Server Error" in err_str:
+            if "502" in err_str:
                 hint = (
-                    "El modelo remoto **gpt-oss:120b-cloud** no está disponible (502). "
-                    "Cambia a un modelo local en el sidebar: `llama3.2`, `llama3` o `mistral:7b-instruct-q4_0`."
+                    "El endpoint de Ollama Cloud devuelve 502 (Bad Gateway). "
+                    "Comprueba que el servicio remoto está levantado o prueba más tarde."
+                )
+            elif "500" in err_str:
+                hint = (
+                    "Error interno del servidor (500) en Ollama Cloud. "
+                    "Se reintentó automáticamente 3 veces. Puede ser un pico de carga — vuelve a enviar el mensaje."
                 )
             else:
                 hint = (

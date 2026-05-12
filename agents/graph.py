@@ -9,6 +9,7 @@ El agente recibe la solicitud del comprador, orquesta las 4 tools en el orden
 """
 
 import os
+import time
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -21,6 +22,9 @@ from tools import ALL_TOOLS
 from agents.prompts import SYSTEM_PROMPT
 
 load_dotenv()
+
+_MAX_RETRIES = 3
+_RETRY_DELAY = 2  # segundos entre reintentos
 
 # ── Configuración del LLM ─────────────────────────────────────────────────────
 
@@ -38,11 +42,27 @@ def _build_llm():
 # ── Nodos del grafo ───────────────────────────────────────────────────────────
 
 def call_model(state: MessagesState) -> dict:
-    """Nodo principal: el LLM razona y decide qué tools llamar (o responde)."""
+    """Nodo principal: el LLM razona y decide qué tools llamar (o responde).
+    Reintenta hasta _MAX_RETRIES veces en errores 5xx transitorios de Ollama Cloud."""
     llm = _build_llm()
     messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
-    response = llm.invoke(messages)
-    return {"messages": [response]}
+
+    last_exc = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            response = llm.invoke(messages)
+            return {"messages": [response]}
+        except Exception as e:
+            err = str(e)
+            # Reintentar solo en errores de servidor transitorios (5xx)
+            if any(code in err for code in ("500", "502", "503", "504")):
+                last_exc = e
+                if attempt < _MAX_RETRIES - 1:
+                    time.sleep(_RETRY_DELAY * (attempt + 1))
+                continue
+            raise  # errores no transitorios: relanzar inmediatamente
+
+    raise last_exc
 
 
 tool_node = ToolNode(ALL_TOOLS)
