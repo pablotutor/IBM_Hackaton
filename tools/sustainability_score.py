@@ -1,43 +1,34 @@
 """
 Tool 5: sustainability_score
-Consulta el score ESG de un proveedor usando RAG sobre la BD sintética de ESG.
+Consulta el score ESG de un proveedor mediante query directa a la BD estructurada.
+Los datos ESG son numéricos y booleanos — no requieren RAG.
 En producción se conectaría a EcoVadis API o MSCI ESG.
 """
 import json
+import pandas as pd
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from tools._shared import DATA_SYNTHETIC, embed, cosine_top_k
+from tools._shared import DATA_SYNTHETIC
 
-ESG_SCORE_ALERT_THRESHOLD = 50   # score < 50 → alerta ESG
+ESG_SCORE_ALERT_THRESHOLD = 50
 
-_ESG_INDEX: dict = {}
+_ESG_DF: Optional[pd.DataFrame] = None
 
 
-def _ensure_index() -> dict:
-    if _ESG_INDEX:
-        return _ESG_INDEX
-
-    esg_path = DATA_SYNTHETIC / "esg_scores.json"
-    with open(esg_path, "r", encoding="utf-8") as f:
-        records = json.load(f)
-
-    # Texto de búsqueda: nombre + categorías + notas de certificaciones
-    docs = []
-    for r in records:
-        cats = " ".join(r.get("categories", []))
-        text = f"{r['supplier']}. Categorías: {cats}. {r.get('certifications_notes', '')}"
-        docs.append(text)
-
-    vecs = embed(docs)
-    _ESG_INDEX.update({"records": records, "docs": docs, "vecs": vecs})
-    return _ESG_INDEX
+def _get_df() -> pd.DataFrame:
+    global _ESG_DF
+    if _ESG_DF is None:
+        path = DATA_SYNTHETIC / "esg_scores.json"
+        with open(path, "r", encoding="utf-8") as f:
+            _ESG_DF = pd.DataFrame(json.load(f))
+    return _ESG_DF
 
 
 class SustainabilityScoreInput(BaseModel):
     supplier: str = Field(..., description="Nombre del proveedor a evaluar")
-    category: Optional[str] = Field(None, description="Categoría del producto (opcional, mejora la búsqueda)")
+    category: Optional[str] = Field(None, description="Categoría del producto (opcional, filtra alternativas)")
 
 
 @tool(args_schema=SustainabilityScoreInput)
@@ -50,101 +41,75 @@ def sustainability_score(supplier: str, category: Optional[str] = None) -> dict:
     impacto medioambiental o cuando necesites comparar proveedores por criterios ESG.
     """
     try:
-        idx = _ensure_index()
-        records = idx["records"]
-        vecs    = idx["vecs"]
+        df = _get_df()
 
-        query = supplier
-        if category:
-            query = f"{supplier} {category}"
+        # Query exacta insensible a mayúsculas
+        mask = df["supplier"].str.lower() == supplier.strip().lower()
+        matches = df[mask]
 
-        # Primero intentar match exacto por nombre (insensible a mayúsculas)
-        supplier_lower = supplier.strip().lower()
-        exact_i = next(
-            (i for i, r in enumerate(records) if r["supplier"].lower() == supplier_lower),
-            None,
-        )
-
-        if exact_i is not None:
-            best_i     = exact_i
-            best_score = 1.0
-            # Top alternativas: otros proveedores con categorías solapadas
-            candidate_cats = set(records[exact_i].get("categories", []))
-            alts_raw = [
-                (i, r) for i, r in enumerate(records)
-                if i != exact_i and set(r.get("categories", [])) & candidate_cats
-            ]
-            alts_raw.sort(key=lambda x: x[1]["esg_score"], reverse=True)
-            alternatives = [
-                {"supplier": r["supplier"], "esg_score": r["esg_score"]}
-                for _, r in alts_raw[:3]
-            ]
-        else:
-            # Fallback: búsqueda semántica por embeddings
-            q_vec = embed([query])[0]
-            top_idx, scores = cosine_top_k(q_vec, vecs, k=min(4, len(records)))
-            best_i     = top_idx[0]
-            best_score = float(scores[0])
-            alternatives = []
-            for i in top_idx[1:]:
-                if float(scores[list(top_idx).index(i)]) > 0.2:
-                    alternatives.append({
-                        "supplier":  records[i]["supplier"],
-                        "esg_score": records[i]["esg_score"],
-                    })
-
-        if best_score < 0.3:
-            # Sin coincidencia suficiente — devolver sugerencias
-            suggestions = [records[i]["supplier"] for i in top_idx[:3]]
+        if matches.empty:
+            # Devolver lista de proveedores disponibles como ayuda
+            available = df["supplier"].tolist()
             return {
-                "status":      "not_found",
-                "message":     f"No se encontró proveedor ESG para '{supplier}'. Proveedores similares: {suggestions}",
-                "suggestions": suggestions,
+                "status":    "not_found",
+                "message":   f"Proveedor '{supplier}' no encontrado en la BD ESG.",
+                "available": available,
             }
 
-        r = records[best_i]
+        r = matches.iloc[0]
 
-        # Formatear certificaciones con iconos para la UI
-        cdp     = r.get("cdp_score", "N/D")
-        iso     = r.get("iso_14001", False)
-        sbt     = r.get("science_based_targets", False)
-        eco_rat = r.get("ecovadis_rating", "N/D")
-        eco_sc  = r.get("ecovadis_score")
-        nzy     = r.get("net_zero_target_year")
-        renew   = r.get("renewable_energy_pct", 0)
+        iso     = bool(r["iso_14001"])
+        sbt     = bool(r["science_based_targets"])
+        cdp     = str(r["cdp_score"])
+        eco_rat = str(r["ecovadis_rating"])
+        eco_sc  = int(r["ecovadis_score"]) if pd.notna(r["ecovadis_score"]) else None
+        nzy     = int(r["net_zero_target_year"]) if pd.notna(r["net_zero_target_year"]) else None
+        renew   = int(r["renewable_energy_pct"])
+        esg_total = int(r["esg_score"])
+        alert   = esg_total < ESG_SCORE_ALERT_THRESHOLD
 
         certifications = {
-            "iso_14001":              iso,
-            "iso_14001_label":        "✅ ISO 14001" if iso else "❌ ISO 14001 (ausente)",
-            "cdp_score":              cdp,
-            "cdp_score_label":        f"CDP Score {cdp}",
-            "science_based_targets":  sbt,
-            "sbt_label":              "✅ Science Based Targets (SBTi)" if sbt else "❌ Science Based Targets (no adherido)",
-            "ecovadis_rating":        eco_rat,
-            "ecovadis_score":         eco_sc,
-            "ecovadis_label":         f"EcoVadis {eco_rat}" + (f" ({eco_sc}/100)" if eco_sc else ""),
+            "iso_14001":             iso,
+            "iso_14001_label":       "✅ ISO 14001" if iso else "❌ ISO 14001 (ausente)",
+            "cdp_score":             cdp,
+            "science_based_targets": sbt,
+            "sbt_label":             "✅ Science Based Targets (SBTi)" if sbt else "❌ Science Based Targets (no adherido)",
+            "ecovadis_rating":       eco_rat,
+            "ecovadis_score":        eco_sc,
+            "ecovadis_label":        f"EcoVadis {eco_rat}" + (f" ({eco_sc}/100)" if eco_sc else ""),
         }
 
-        esg_total = r["esg_score"]
-        alert = esg_total < ESG_SCORE_ALERT_THRESHOLD
+        # Alternativas: otros proveedores con categorías solapadas, ordenados por ESG desc
+        supplier_cats = set(r["categories"])
+        alt_mask = df["supplier"].str.lower() != supplier.strip().lower()
+        if category:
+            alt_mask &= df["categories"].apply(lambda cats: category in cats)
+        else:
+            alt_mask &= df["categories"].apply(lambda cats: bool(set(cats) & supplier_cats))
+
+        alternatives = (
+            df[alt_mask][["supplier", "esg_score"]]
+            .sort_values("esg_score", ascending=False)
+            .head(3)
+            .to_dict(orient="records")
+        )
 
         return {
-            "status":              "success",
-            "supplier":            r["supplier"],
-            "similarity_score":    round(best_score, 4),
-            "esg_score":           esg_total,
-            "esg_alert":           alert,
-            "esg_alert_message":   f"⚠️ Score ESG bajo ({esg_total}/100): revisar criterios de sostenibilidad antes de adjudicar." if alert else None,
+            "status":             "success",
+            "supplier":           str(r["supplier"]),
+            "esg_score":          esg_total,
+            "esg_alert":          alert,
+            "esg_alert_message":  f"⚠️ Score ESG bajo ({esg_total}/100): revisar criterios de sostenibilidad antes de adjudicar." if alert else None,
             "breakdown": {
-                "carbon_score":     r.get("carbon_score"),
-                "social_score":     r.get("social_score"),
-                "governance_score": r.get("governance_score"),
+                "carbon_score":     int(r["carbon_score"]),
+                "social_score":     int(r["social_score"]),
+                "governance_score": int(r["governance_score"]),
             },
-            "certifications":        certifications,
-            "net_zero_target_year":  nzy,
-            "renewable_energy_pct":  renew,
-            "notes":                 r.get("certifications_notes", ""),
-            "top_alternatives":      alternatives,
+            "certifications":       certifications,
+            "net_zero_target_year": nzy,
+            "renewable_energy_pct": renew,
+            "notes":                str(r["certifications_notes"]),
+            "top_alternatives":     alternatives,
         }
 
     except FileNotFoundError:
