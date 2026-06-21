@@ -70,14 +70,19 @@ def _slim_tool_content(tool_name: str, raw: str) -> str:
     if tool_name == "catalog_search":
         results = data.get("results", [])[:2]  # máx 2 resultados
         slim_results = [
-            {k: r[k] for k in ("sku", "name", "category", "unit_price_eur", "supplier", "uom", "is_duplicate") if k in r}
+            {k: r[k] for k in ("sku", "name", "category", "unit_price_eur", "supplier", "uom", "is_duplicate", "canonical_id") if k in r}
             for r in results
         ]
         return json.dumps({
             "status": "success",
             "results": slim_results,
+            "duplicate_groups_detected": data.get("duplicate_groups_detected", 0),
             "duplicates_detected": data.get("duplicates_detected", 0),
         }, ensure_ascii=False)
+
+    if tool_name == "recommend_variant":
+        keep = ("status", "canonical_name", "winner", "savings_vs_worst_pct", "quota_comparison")
+        return json.dumps({k: data[k] for k in keep if k in data}, ensure_ascii=False)
 
     if tool_name == "contract_lookup":
         for c in data.get("contracts", []):

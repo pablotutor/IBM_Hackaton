@@ -79,7 +79,7 @@ const QUICK_PROMPTS = [
   // APROBAR: precio exactamente en contrato marco radio 5G
   "5 unidades RRU Huawei AAU5613 5G NR 64T64R 3.5GHz a 16.500€/u para macro 5G",
   // RECHAZAR: precio 3,20€ >> negociado 1,65€ (precio desorbitado vs contrato)
-  "10.000m de cable fibra óptica SM G.652D Corning a 3,20€/m. ¿Lo apruebo?",
+  "10.000m de cable fibra óptica SM G.652D 12 hilos Corning a 3,20€/m. ¿Lo apruebo?",
   // RECHAZAR: sin catálogo ni contrato marco que lo cubra
   "Servicios de instalación FTTH en Galicia — 1,8M€",
 ];
@@ -190,29 +190,103 @@ function KV({k, v, tone}) {
 }
 
 /* ─── STRUCTURED RESPONSE SECTIONS ─── */
-function CatalogCard({data}) {
+function CatalogCard({data, recommend}) {
   if (!data || data.status !== "success") return null;
   const top  = data.results?.[0];
-  const dups = data.duplicates_detected || 0;
   if (!top) return null;
+  const dups = data.duplicate_groups_detected || data.duplicates_detected || 0;
+  const w    = (recommend && recommend.status === "success") ? recommend.winner : null;
+  const uom  = top.uom ?? "u";
+  // Si hay ganador de recommend_variant, mostramos ESE SKU (el bueno); si no, el match por similitud.
+  const sku      = w ? w.sku : top.sku;
+  const name     = w ? (recommend.canonical_name || top.name) : top.name;
+  const supplier = w ? w.supplier : top.supplier;
+  const price    = w ? w.unit_price_eur : top.unit_price_eur;
+  const consolidated = w && w.sku !== top.sku;
   return (
     <SectionCard icon={I.search} title="Catálogo">
-      <KV k="SKU"        v={<span className="mono text-[11.5px]">{top.sku}</span>}/>
-      <KV k="Artículo"   v={top.name}/>
-      <KV k="Proveedor"  v={top.supplier}/>
+      <KV k="SKU" v={
+        <span className="flex items-center gap-1.5 flex-wrap">
+          <span className="mono text-[11.5px]">{sku}</span>
+          {w && <span className="chip" style={{background:"rgba(47,179,122,0.10)",color:"var(--ok)",border:"1px solid rgba(47,179,122,0.25)",fontSize:10}}>✓ recomendado</span>}
+        </span>
+      }/>
+      <KV k="Artículo"   v={name}/>
+      <KV k="Proveedor"  v={supplier}/>
       <KV k="Categoría"  v={top.category}/>
-      <KV k="Precio lista" v={`${top.unit_price_eur?.toFixed(2) ?? "—"} €/${top.uom ?? "u"}`}/>
+      <KV k="Precio lista" v={`${price?.toFixed(2) ?? "—"} €/${uom}`}/>
       <KV k="En catálogo"  v="Sí" tone="var(--ok)"/>
-      {dups > 0 && (
+      {consolidated && (
+        <div className="mt-2 flex items-start gap-1.5 text-[11.5px]" style={{color:"var(--ok)"}}>
+          <I.check width={11} height={11} style={{marginTop:2}}/>
+          <span>
+            Consolidado{recommend.variant_count ? ` de ${recommend.variant_count} variantes` : ""} en el SKU óptimo
+            {recommend.savings_vs_worst_pct ? ` · ahorro ${recommend.savings_vs_worst_pct}%` : ""}.
+            <span style={{color:"var(--ink-3)"}}> Pediste <span className="mono">{top.sku}</span>.</span>
+          </span>
+        </div>
+      )}
+      {!w && dups > 0 && (
         <div className="mt-2 flex items-center gap-1.5 text-[11.5px]" style={{color:"var(--warn)"}}>
-          <I.alert width={11} height={11}/> {dups} duplicado{dups>1?"s":""} detectado{dups>1?"s":""}
+          <I.alert width={11} height={11}/> {dups} grupo{dups>1?"s":""} de duplicados detectado{dups>1?"s":""}
         </div>
       )}
     </SectionCard>
   );
 }
 
-function ContractCard({data}) {
+// Busca la cuota actual de un proveedor en share_by_supplier (match exacto o case-insensitive)
+function lookupShare(shareMap, name) {
+  if (!shareMap || !name) return null;
+  if (name in shareMap) return shareMap[name];
+  const lower = name.toLowerCase();
+  const k = Object.keys(shareMap).find(s => s.toLowerCase() === lower);
+  return k ? shareMap[k] : null;
+}
+
+// Fila de proveedor del contrato: hover o click revela la cuota actual vs objetivo
+function SupplierQuotaRow({name, targetPct, currentShare}) {
+  const [open, setOpen] = useState(false);
+  const tgt  = parseFloat(targetPct) || 0;
+  const has  = typeof currentShare === "number";
+  const cur  = has ? currentShare : null;
+  const gap  = has ? cur - tgt : null;
+  const tone = !has ? "neutral" : Math.abs(gap) <= 5 ? "ok" : gap > 0 ? "warn" : "bad";
+  const color= {ok:"var(--ok)", warn:"var(--warn)", bad:"var(--bad)", neutral:"var(--ink-2)"}[tone];
+  const label= !has ? "" : Math.abs(gap) <= 5 ? "en objetivo"
+             : gap > 0 ? `+${gap.toFixed(1)}pp sobre objetivo`
+             : `${gap.toFixed(1)}pp bajo objetivo`;
+  return (
+    <div onMouseEnter={()=>has&&setOpen(true)} onMouseLeave={()=>has&&setOpen(false)}
+         onClick={()=>has&&setOpen(o=>!o)} style={{cursor:has?"pointer":"default"}}>
+      <div className="flex items-center justify-between text-[12px] py-1 border-b" style={{borderColor:"var(--line)"}}>
+        <span className="flex items-center gap-1.5" style={{color:"var(--ink-1)"}}>
+          {name}
+          {has && <I.scale width={10} height={10} style={{color:open?color:"var(--ink-3)"}}/>}
+        </span>
+        <span style={{color:"var(--ink-2)"}}>
+          objetivo {targetPct}
+          {has && <> · <span style={{color}}>{cur}% actual</span></>}
+        </span>
+      </div>
+      {open && has && (
+        <div className="mb-1.5 mt-1 px-0.5">
+          <div className="h-1.5 rounded-full overflow-hidden relative" style={{background:"var(--bg-3)"}}>
+            <div className="h-full absolute inset-y-0 left-0 rounded-full" style={{width:`${Math.min(cur,100)}%`, background:color, transition:"width .4s"}}/>
+            <div className="absolute inset-y-0" style={{left:`${Math.min(tgt,100)}%`, width:1, background:"var(--ink-1)", opacity:0.5}}/>
+          </div>
+          <div className="flex justify-between text-[10px] mono mt-1">
+            <span style={{color}}>actual {cur}%</span>
+            <span style={{color:"var(--ink-3)"}}>{Math.round(tgt)}% obj.</span>
+          </div>
+          <div className="text-[10.5px] mt-0.5" style={{color}}>{label}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ContractCard({data, quota}) {
   if (!data || data.status !== "success") return null;
   const contracts = data.contracts || [];
   if (!contracts.length) return (
@@ -222,13 +296,20 @@ function ContractCard({data}) {
   );
   const c = contracts[0];
   const suppliers = c.suppliers || [];
+  const shareMap = quota?.share_by_supplier || null;
+  const anyShare = suppliers.some(s => lookupShare(shareMap, s.name) !== null);
   return (
     <SectionCard icon={I.doc} title="Contrato Marco" tone="ok">
       <KV k="ID"      v={<span className="mono text-[11.5px]">{c.contract_id}</span>}/>
       <KV k="Estado"  v="ACTIVO" tone="var(--ok)"/>
       <KV k="Vigente hasta" v={c.validity_end}/>
+      <div className="mt-1.5 mb-0.5 text-[10px] uppercase tracking-wider flex items-center gap-1" style={{color:"var(--ink-3)"}}>
+        Proveedores homologados
+        {anyShare && <span style={{textTransform:"none",letterSpacing:0}}>· pasa el ratón o pincha para ver la cuota actual</span>}
+      </div>
       {suppliers.map((s,i) => (
-        <KV key={i} k={s.name} v={`objetivo ${s.market_share_pct}`}/>
+        <SupplierQuotaRow key={i} name={s.name} targetPct={s.market_share_pct}
+                          currentShare={lookupShare(shareMap, s.name)}/>
       ))}
     </SectionCard>
   );
@@ -370,68 +451,6 @@ function ESGCard({data}) {
   );
 }
 
-function DupResolutionCard({items, onSelect, onSkip}) {
-  const [selected, setSelected] = useState(null);
-  const ordered = [...items.filter(r=>!r.is_duplicate), ...items.filter(r=>r.is_duplicate)];
-  return (
-    <div className="fiu rounded-xl overflow-hidden" style={{background:"var(--bg-1)",border:"1px solid rgba(217,164,65,0.35)"}}>
-      <div className="flex items-start gap-3 px-4 py-3.5" style={{borderBottom:"1px solid var(--line)",background:"rgba(217,164,65,0.06)"}}>
-        <span className="flex items-center justify-center w-7 h-7 rounded-md shrink-0 mt-0.5" style={{background:"rgba(217,164,65,0.15)",color:"var(--warn)"}}>
-          <I.alert width={14} height={14}/>
-        </span>
-        <div>
-          <div className="text-[13px] font-semibold" style={{color:"var(--warn)"}}>Duplicados detectados — selección requerida</div>
-          <div className="text-[12px] mt-0.5" style={{color:"var(--ink-2)"}}>
-            El catálogo contiene el mismo producto bajo varios SKUs. Selecciona el{" "}
-            <strong style={{color:"var(--ink-1)"}}>SKU canónico</strong> para garantizar economías de escala y adherencia al forecast.
-          </div>
-        </div>
-      </div>
-      <div className="px-4 py-3 flex flex-col gap-2">
-        {ordered.map(item=>{
-          const isSel = selected?.sku===item.sku;
-          return (
-            <button key={item.sku} onClick={()=>setSelected(item)} className="text-left rounded-lg px-3.5 py-3 transition-all"
-                    style={{background:isSel?"var(--accent-soft)":"var(--bg-2)",border:`1px solid ${isSel?"var(--accent)":"var(--line)"}`,boxShadow:isSel?"0 0 0 3px rgba(124,107,242,0.10)":"none"}}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="shrink-0 w-4 h-4 rounded-full border flex items-center justify-center"
-                        style={{borderColor:isSel?"var(--accent)":"var(--line-2)",background:isSel?"var(--accent)":"transparent"}}>
-                    {isSel&&<I.check width={10} height={10} style={{color:"#fff"}}/>}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="mono text-[11.5px] font-medium" style={{color:isSel?"var(--accent)":"var(--ink-2)"}}>{item.sku}</span>
-                      {item.is_duplicate&&<span className="chip" style={{background:"rgba(229,72,77,0.08)",color:"var(--bad)",border:"1px solid rgba(229,72,77,0.2)",fontSize:10}}>duplicado</span>}
-                    </div>
-                    <div className="text-[12.5px] font-medium mt-0.5 leading-snug" style={{color:"var(--ink-0)"}}>{item.name}</div>
-                    <div className="text-[11.5px] mt-0.5" style={{color:"var(--ink-2)"}}>{item.supplier}</div>
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-[14px] font-semibold tabular-nums" style={{color:isSel?"var(--accent)":"var(--ink-0)"}}>{item.unit_price_eur?.toFixed(2)} €</div>
-                  <div className="text-[10.5px]" style={{color:"var(--ink-3)"}}>/ {item.uom??"u"}</div>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-2 px-4 pb-4">
-        <button disabled={!selected} onClick={()=>selected&&onSelect(selected)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-md text-[12.5px] font-medium disabled:opacity-40"
-                style={{background:"var(--accent)",color:"#fff"}}>
-          <I.check width={12} height={12}/> Confirmar SKU y analizar
-        </button>
-        <button onClick={onSkip} className="px-3.5 py-2 rounded-md text-[12.5px] font-medium"
-                style={{background:"var(--bg-3)",color:"var(--ink-1)",border:"1px solid var(--line-2)"}}>
-          Continuar sin seleccionar
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function RecommendationBox({verdict, text, alerts}) {
   if (!verdict && !text) return null;
   const cfg = {
@@ -525,6 +544,7 @@ function StructuredResponse({tools, finalResponse}) {
   const quota    = get("quota_status");
   const price    = get("price_benchmark");
   const esg      = get("sustainability_score");
+  const recommend= get("recommend_variant");
   const verdict  = parseVerdict(finalResponse);
   const alerts   = parseAlerts(finalResponse);
 
@@ -558,8 +578,8 @@ function StructuredResponse({tools, finalResponse}) {
       {/* ── 2-col grid: Catálogo + Contrato ── */}
       {(catalog || contract) && (
         <div className="grid grid-cols-2 gap-2.5">
-          {catalog  && <CatalogCard  data={catalog}/>}
-          {contract && <ContractCard data={contract}/>}
+          {catalog  && <CatalogCard  data={catalog} recommend={recommend}/>}
+          {contract && <ContractCard data={contract} quota={quota}/>}
         </div>
       )}
 
@@ -979,49 +999,13 @@ function App() {
 
   async function runQuery(text) {
     if(!text.trim()||busy) return;
-    setBusy(true);
-
-    // Pre-flight: detectar duplicados antes de arrancar el agente
-    let dupData = null;
-    try {
-      const r = await fetch(`${API_BASE}/api/catalog-check`,{
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({message:text}),
-      });
-      if(r.ok) dupData = await r.json();
-    } catch(_) {}
-
-    // Duplicados detectados → mostrar tarjeta de selección
-    if(dupData && dupData.duplicates_detected>0 && dupData.items.length>=2) {
-      setBusy(false);
-      const userMsgId = Date.now();
-      const dupId = Date.now()+1;
-      setMessages(prev=>[...prev,
-        {id:userMsgId, role:"user", text},
-        {id:dupId, role:"dup_check", items:dupData.items, originalText:text},
-      ]);
-      return;
-    }
-
-    // Sin duplicados → flujo normal
-    setBusy(false);
+    // El agente detecta los duplicados y recomienda el ganador automáticamente
+    // (recommend_variant) — ya no hay selección manual de SKU.
     await runQueryStream(text, false);
   }
 
-  async function handleDupSelect(dupId, originalText, item) {
-    const enriched = `${originalText}\n\n[El comprador ha seleccionado el SKU canónico: ${item.sku} — ${item.name}. Usa este SKU exacto en tu análisis.]`;
-    setMessages(prev=>prev.map(m=>m.id===dupId ? {...m, role:"dup_confirmed", selectedItem:item} : m));
-    await runQueryStream(enriched, true);
-  }
-
-  function handleDupSkip(dupId, originalText) {
-    setMessages(prev=>prev.filter(m=>m.id!==dupId));
-    runQueryStream(originalText, true);
-  }
-
   function handleSend() {
-    const hasPendingDup = messages.some(m=>m.role==="dup_check");
-    if(!input.trim()||busy||hasPendingDup) return;
+    if(!input.trim()||busy) return;
     const q=input.trim(); setInput(""); runQuery(q);
   }
 
@@ -1056,21 +1040,6 @@ function App() {
             {messages.length===0 && <EmptyState buyer={buyer} onPick={p=>setInput(p)}/>}
             {messages.map(m=>{
               if(m.role==="user") return <UserMessage key={m.id} text={m.text} buyer={buyer}/>;
-              if(m.role==="dup_check") return (
-                <div key={m.id} className="w-full">
-                  <DupResolutionCard items={m.items}
-                    onSelect={item=>handleDupSelect(m.id, m.originalText, item)}
-                    onSkip={()=>handleDupSkip(m.id, m.originalText)}/>
-                </div>
-              );
-              if(m.role==="dup_confirmed") return (
-                <div key={m.id} className="flex items-center gap-2">
-                  <I.check width={13} height={13} style={{color:"var(--ok)"}}/>
-                  <span className="chip" style={{background:"rgba(47,179,122,0.10)",color:"var(--ok)",border:"1px solid rgba(47,179,122,0.25)"}}>
-                    SKU canónico: {m.selectedItem.sku} — {m.selectedItem.name}
-                  </span>
-                </div>
-              );
               return <AgentMessage key={m.id} tools={m.tools} done={m.done}
                               elapsedMs={m.elapsedMs} finalResponse={m.finalResponse} error={m.error}/>;
             })}

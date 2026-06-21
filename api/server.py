@@ -6,7 +6,6 @@ Sirve también el frontend estático desde frontend/.
 import asyncio
 import json
 import os
-import re
 import sys
 import threading
 from pathlib import Path
@@ -28,7 +27,6 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 from agents.graph import run_agent_streaming  # noqa: E402
-from tools.catalog_search import catalog_search  # noqa: E402
 
 app = FastAPI(title="Orbita", version="2.0.0")
 
@@ -90,50 +88,6 @@ async def chat_stream(req: ChatRequest):
             "Connection": "keep-alive",
         },
     )
-
-
-class CatalogCheckRequest(BaseModel):
-    message: str
-
-
-@app.post("/api/catalog-check")
-def catalog_check(req: CatalogCheckRequest):
-    """
-    Pre-flight: extrae la descripción del producto del mensaje del comprador
-    y llama a catalog_search para detectar SKUs duplicados antes de arrancar el agente.
-    Falla abierto: cualquier error devuelve duplicates_detected=0.
-    """
-    text = req.message.strip()
-    text = re.sub(r'^\d[\d.,]*\s*(?:m|km|u|unidades?|uds?\.?|ud\.?)\s+de\s+', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\s+a\s+[\d.,]+\s*€.*$', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\s*[¿?][^?]*\??\s*$', '', text).strip()
-    query = text if len(text) >= 10 else req.message.strip()
-
-    try:
-        result = catalog_search.func(description=query, limit=7)
-    except Exception:
-        return {"duplicates_detected": 0, "items": [], "query": query}
-
-    if result.get("status") != "success":
-        return {"duplicates_detected": 0, "items": [], "query": query}
-
-    items = [
-        {
-            "sku":              r["sku"],
-            "name":             r["name"],
-            "supplier":         r["supplier"],
-            "unit_price_eur":   r["unit_price_eur"],
-            "uom":              r["uom"],
-            "similarity_score": r["similarity_score"],
-            "is_duplicate":     r["is_duplicate"],
-        }
-        for r in result.get("results", [])
-    ]
-    return {
-        "duplicates_detected": result.get("duplicates_detected", 0),
-        "items":               items,
-        "query":               query,
-    }
 
 
 # Servir el frontend estático (debe ir al final para no solapar rutas /api)

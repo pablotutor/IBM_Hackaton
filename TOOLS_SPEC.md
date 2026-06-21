@@ -6,7 +6,7 @@ Todos los miembros del equipo deben conocer estas firmas **exactas** antes de co
 
 ## Tool 1: catalog_search
 
-**Descripción:** Busca artículos en el catálogo que coincidan con la descripción del usuario.
+**Descripción:** Busca artículos en el catálogo que coincidan con la descripción del usuario y **los agrupa por producto canónico**. La detección de duplicados NO se hace en caliente: cada artículo trae un `canonical_id` precalculado offline por `scripts/build_canonical_ids.py` (Tier 1 nombre exacto + Tier 2 matching semántico para parafraseados). La tool solo agrupa por ese id y marca el ganador preliminar por precio; el agente afina el ganador con contrato/precio justo/cuota/ESG.
 
 **Parámetros de entrada:**
 - `description` (str, requerido): Descripción del artículo (ej: "fibra óptica monomodo")
@@ -16,25 +16,100 @@ Todos los miembros del equipo deben conocer estas firmas **exactas** antes de co
 ```python
 {
     "status": "success",
+    "query": "cable drop ftth",
+    # Lista plana de matches (compat. con frontend/agente). Cada item lleva canonical_id/name.
     "results": [
         {
-            "sku": "SKU-1234",
-            "name": "Cable FO SM 12 hilos",
-            "description": "Fibra óptica monomodo...",
-            "category": "fibra_óptica",
-            "unit_price_eur": 2.50,
-            "supplier": "Corning",
-            "similarity_score": 0.95
+            "sku": "EXT-007",
+            "name": "Cable FO SM G.657A2 2 hilos drop FTTH",
+            "description": "Cable drop FTTH monomodo...",
+            "category": "fibra_optica",
+            "unit_price_eur": 0.38,
+            "supplier": "Prysmian",
+            "uom": "metro",
+            "similarity_score": 0.93,
+            "is_duplicate": False,
+            "canonical_id": "CAN-0001",
+            "canonical_name": "Cable FO SM G.657A2 2 hilos drop FTTH"
+        }
+    ],
+    # Resultados agrupados por producto canónico — lo que mueve la recomendación.
+    "groups": [
+        {
+            "group_id": "grp_1",
+            "canonical_id": "CAN-0001",
+            "canonical_name": "Cable FO SM G.657A2 2 hilos drop FTTH",
+            "category": "fibra_optica",
+            "uom": "metro",
+            "best_similarity_score": 0.93,
+            "variant_count": 3,
+            "price_range_eur": {"min": 0.38, "max": 0.50},
+            "potential_overspend_pct": 31.6,        # (max-min)/min — el gancho de la demo
+            "variants": [                            # ordenadas por precio asc
+                {"sku": "EXT-007",    "supplier": "Prysmian", "unit_price_eur": 0.38, "uom": "metro", "is_duplicate": False, "preliminary_best": True},
+                {"sku": "FO-007",     "supplier": "Prysmian", "unit_price_eur": 0.42, "uom": "metro", "is_duplicate": False, "preliminary_best": False},
+                {"sku": "FO-DUP-003", "supplier": "Corning",  "unit_price_eur": 0.50, "uom": "metro", "is_duplicate": True,  "preliminary_best": False}
+            ]
         }
     ],
     "total_found": 3,
-    "duplicates_detected": 2
+    "duplicate_groups_detected": 1,                  # grupos con >1 variante
+    "duplicates_detected": 2,                         # variantes redundantes (Σ variant_count-1)
+    "duplicate_warning": "⚠️ 1 grupo(s) de duplicados (2 variantes redundantes): ..."
 }
+```
+
+**`not_found`** (mejor similitud < 0.60 → posible maverick spend):
+```python
+{"status": "not_found", "query": "...", "message": "...", "results": [], "groups": [],
+ "total_found": 0, "duplicate_groups_detected": 0, "duplicates_detected": 0, "duplicate_warning": None}
 ```
 
 **Errors:**
 ```python
 {"status": "error", "message": "No results found"}
+```
+
+> **Ganador final → Tool 6 `recommend_variant`** (determinista, no lo calcula el LLM).
+> `preliminary_best` de catalog_search es solo el más barato; el ganador oficial lo
+> decide `recommend_variant`.
+
+---
+
+## Tool 6: recommend_variant
+
+**Descripción:** Decide QUÉ variante comprar dentro de un grupo de duplicados (mismo `canonical_id`). Reúne contrato/precio/cuota/ESG por variante y calcula un `recommendation_score` (0-100) determinista. El agente la llama cuando `catalog_search` devuelve `duplicate_groups_detected > 0`.
+
+**Parámetros:**
+- `canonical_id` (str, requerido): id del grupo (de catalog_search)
+- `buyer_id` (str, default "buyer_mad_001"): para evaluar cuota
+- `quantity` (int, default 1): para el benchmark de precio
+
+**Scoring (jerarquía contrato primero):**
+```
+score = 100 · (0.40·contrato + 0.35·precio + 0.15·cuota + 0.10·esg) − 40·esg_alert
+  contrato : 1.0 bajo contrato marco, 0.4 fuera (anti maverick spend)
+  precio   : baratura RELATIVA en el grupo = min_precio_grupo / precio  (más barato = mejor)
+  cuota    : under 1.0 · ok 0.85 · over 0.6  (desempate, no voltea el precio)
+  esg      : esg_score/100 ; penalización −40 si esg_alert
+```
+
+**Output (dict):**
+```python
+{
+    "status": "success",
+    "canonical_id": "CAN-0001",
+    "canonical_name": "Cable FO SM G.657A2 2 hilos drop FTTH",
+    "category": "fibra_optica",
+    "variant_count": 3,
+    "winner": {
+        "sku": "EXT-007", "supplier": "Prysmian", "unit_price_eur": 0.38,
+        "recommendation_score": 91.0,
+        "why": "bajo contrato 2024-CM-FO-001 · 12% bajo precio justo · cuota excedida · ESG 70"
+    },
+    "savings_vs_worst_pct": 24.0,
+    "ranking": [ {"rank": 1, "recommended": True, "sku": "...", "recommendation_score": ..., "breakdown": {...}, "why": "..."}, ... ]
+}
 ```
 
 ---
